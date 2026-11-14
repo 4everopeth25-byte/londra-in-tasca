@@ -1,0 +1,38 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Londra in tasca</title>
+<meta name="theme-color" content="#0d1033">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone/icona-192.png">
+<link rel="apple-touch-icon" href="icone/icona-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Londra">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<canvas id="neve" aria-hidden="true"></canvas>
+<header class="top">
+  <div class="logo">
+    <small>ロンドン · NATALE 2026</small>
+    <h1>LONDRA <em>in tasca</em></h1>
+  </div>
+  <div class="conto" id="conto"></div>
+</header>
+<main id="vista"></main>
+<nav class="tab" id="tab" aria-label="Sezioni">
+  <button data-az="tab" data-v="giorni" data-t="giorni"><i>🗓</i><span>Giorni</span></button>
+  <button data-az="tab" data-v="prenot" data-t="prenot"><i>🎫</i><span>Prenota</span></button>
+  <button data-az="tab" data-v="idee" data-t="idee"><i>💡</i><span>Idee</span></button>
+  <button data-az="tab" data-v="spese" data-t="spese"><i>💷</i><span>Spese</span></button>
+  <button data-az="tab" data-v="dati" data-t="dati"><i>🔄</i><span>Scambio</span></button>
+</nav>
+<script src="dati.js"></script>
+<script src="app.js"></script>
+<script src="installa.js"></script>
+</body>
+</html>
