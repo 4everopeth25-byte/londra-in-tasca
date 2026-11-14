@@ -90,6 +90,38 @@ const TRIP = {
     "Stime dei taxi",
     "Regole sui bambini nei pub: molti non li accettano dopo le 19-21"
   ],
+  valigia: [
+    { id: "passaporto", t: "Passaporto per tutti e 5, bambina compresa", d: "Verifica i documenti richiesti per l'ingresso su gov.uk." },
+    { id: "eta", t: "ETA approvata, salvata sul telefono" },
+    { id: "imbarco", t: "Carte d'imbarco", d: "Wizz Air all'andata. Ryanair solo sull'app." },
+    { id: "bagaglio", t: "Bagaglio a mano entro 40x30x20", d: "Vale per il volo di andata." },
+    { id: "carta", t: "Carta contactless per metro e treni" },
+    { id: "contanti", t: "Qualche sterlina in contanti" },
+    { id: "roaming", t: "Roaming dati attivo o eSIM" },
+    { id: "powerbank", t: "Power bank carico, nel bagaglio a mano" },
+    { id: "adattatore", t: "Adattatore di corrente per il Regno Unito (tipo G)" },
+    { id: "passeggino", t: "Passeggino piccolo da viaggio" },
+    { id: "bimba", t: "Snack, giochi e cambio per la bambina" },
+    { id: "meteo", t: "Giacche impermeabili, ombrello pieghevole, guanti e cappello" },
+    { id: "medicine", t: "Medicine personali" }
+  ],
+  frasi: [
+    ["Un tavolo per cinque, per favore.", "A table for five, please."],
+    ["Abbiamo una prenotazione a nome...", "We have a booking under the name..."],
+    ["Avete un menu per bambini?", "Do you have a children's menu?"],
+    ["Possiamo pagare con la carta?", "Can we pay by card?"],
+    ["Il conto, per favore.", "Could we have the bill, please?"],
+    ["Dov'è la stazione della metropolitana più vicina?", "Where is the nearest tube station?"],
+    ["Può chiamarci un taxi, per favore?", "Could you call us a taxi, please?"],
+    ["Il passeggino può entrare?", "Is the pushchair allowed in?"],
+    ["Siamo in ritardo di dieci minuti.", "We're running ten minutes late."],
+    ["Ho bisogno di aiuto.", "I need some help, please."]
+  ],
+  emergenze: [
+    { n: "999", t: "Emergenze: polizia, ambulanza, pompieri. Funziona anche il 112." },
+    { n: "111", t: "Servizio sanitario NHS, per consigli medici non urgenti." },
+    { n: "101", t: "Polizia, casi non urgenti." }
+  ],
   info: [
     "Mezzi: metro e treni con carta contactless.",
     "Passeggino piccolo da viaggio: sì.",

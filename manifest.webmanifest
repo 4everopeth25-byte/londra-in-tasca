@@ -15,5 +15,10 @@
     { "src": "icone/icona-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
     { "src": "icone/icona-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
   ],
+  "share_target": {
+    "action": "./",
+    "method": "GET",
+    "params": { "title": "title", "text": "text", "url": "url" }
+  },
   "prefer_related_applications": false
 }

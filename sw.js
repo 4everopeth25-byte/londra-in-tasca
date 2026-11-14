@@ -1,14 +1,21 @@
 /* Londra in tasca: tiene l'app in memoria per usarla senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-2";
+const VERSIONE = "lit-4";
 const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "installa.js", "manifest.webmanifest",
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
-self.addEventListener("install", e => e.waitUntil(caches.open(VERSIONE).then(c => c.addAll(FILE)).then(() => self.skipWaiting())));
+self.addEventListener("install", e => e.waitUntil(
+  caches.open(VERSIONE).then(c => c.addAll(FILE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting())));
+/* elimina solo le vecchie copie di questa app (prefisso lit-), non quelle di altre app dello stesso sito */
 self.addEventListener("activate", e => e.waitUntil(
-  caches.keys().then(k => Promise.all(k.filter(x => x !== VERSIONE).map(x => caches.delete(x)))).then(() => self.clients.claim())));
-/* prima la rete, se manca la copia: così un aggiornamento arriva subito quando c'è connessione */
+  caches.keys().then(k => Promise.all(k.filter(x => x.startsWith("lit-") && x !== VERSIONE).map(x => caches.delete(x)))).then(() => self.clients.claim())));
+/* prima la rete (con limite di 4 secondi), se manca o è lenta la copia salvata */
 self.addEventListener("fetch", e => {
-  if (e.request.method !== "GET" || new URL(e.request.url).origin !== location.origin) return;
-  e.respondWith(fetch(e.request).then(r => {
-    const copia = r.clone(); caches.open(VERSIONE).then(c => c.put(e.request, copia)); return r;
-  }).catch(() => caches.match(e.request, { ignoreSearch: true })));
+  const u = new URL(e.request.url);
+  if (e.request.method !== "GET" || u.origin !== location.origin) return;
+  const rete = Promise.race([fetch(e.request, { cache: "no-cache" }), new Promise((_, no) => setTimeout(() => no(new Error("lenta")), 4000))]);
+  e.respondWith(rete.then(r => {
+    if (r.ok && r.type === "basic" && !r.redirected && !u.search) {
+      const copia = r.clone(); e.waitUntil(caches.open(VERSIONE).then(c => c.put(e.request, copia)));
+    }
+    return r;
+  }).catch(() => caches.open(VERSIONE).then(c => c.match(e.request, { ignoreSearch: true })).then(r => r || caches.open(VERSIONE).then(c => c.match("index.html")))));
 });

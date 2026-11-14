@@ -4,6 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Londra in tasca</title>
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'">
 <meta name="theme-color" content="#0d1033">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" href="icone/icona-192.png">
@@ -15,22 +16,24 @@
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
+<div id="annuncio" class="vh" role="status" aria-live="polite" aria-atomic="true"></div>
 <canvas id="neve" aria-hidden="true"></canvas>
 <header class="top">
   <div class="logo">
-    <small>ロンドン · NATALE 2026</small>
+    <small>NATALE 2026 · 23-27 DIC</small>
     <h1>LONDRA <em>in tasca</em></h1>
   </div>
   <div class="conto" id="conto"></div>
 </header>
 <main id="vista"></main>
 <nav class="tab" id="tab" aria-label="Sezioni">
-  <button data-az="tab" data-v="giorni" data-t="giorni"><i>🗓</i><span>Giorni</span></button>
-  <button data-az="tab" data-v="prenot" data-t="prenot"><i>🎫</i><span>Prenota</span></button>
-  <button data-az="tab" data-v="idee" data-t="idee"><i>💡</i><span>Idee</span></button>
-  <button data-az="tab" data-v="spese" data-t="spese"><i>💷</i><span>Spese</span></button>
-  <button data-az="tab" data-v="dati" data-t="dati"><i>🔄</i><span>Scambio</span></button>
+  <button data-az="tab" data-v="giorni" data-t="giorni"><i aria-hidden="true">🗓</i><span>Giorni</span></button>
+  <button data-az="tab" data-v="prenot" data-t="prenot"><i aria-hidden="true">🎫</i><span>Prenota</span></button>
+  <button data-az="tab" data-v="idee" data-t="idee"><i aria-hidden="true">💡</i><span>Idee</span></button>
+  <button data-az="tab" data-v="spese" data-t="spese"><i aria-hidden="true">💷</i><span>Spese</span></button>
+  <button data-az="tab" data-v="altro" data-t="altro"><i aria-hidden="true">🧳</i><span>Altro</span></button>
 </nav>
+<button id="toast" class="toast" hidden></button>
 <script src="dati.js"></script>
 <script src="app.js"></script>
 <script src="installa.js"></script>
