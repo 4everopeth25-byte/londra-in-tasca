@@ -3,7 +3,7 @@ const ADULTI = ["uomo", "donna"];
 const TUTTI = ["uomo", "donna", "bambina"];
 const TRIP = {
   partenza: "2026-12-23T19:05:00",
-  gruppoDefault: ["Adulto 1", "Adulto 2", "Adulto 3", "Adulto 4"],
+  gruppoDefault: ["Francesco", "Sara", "Rosa", "Giuliano"],
   giorni: [
     {
       iso: "2026-12-23", breve: "23 mer", data: "Mercoledì 23 dicembre", titolo: "Arrivo e prima sera", mezzo: "transit",
