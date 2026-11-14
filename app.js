@@ -10,14 +10,17 @@ const eur = n => "€" + num(n);
 const vivi = a => a.filter(x => !x.del);
 const STATI = ["da valutare", "sì", "no", "fatta"];
 
-const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, riserv: null });
+const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", riserv: null });
 let S = carica();
 function carica() {
   try {
     const x = Object.assign(vuoto(), JSON.parse(localStorage.getItem(CH) || "{}"));
     for (const k of ["idee", "spese"]) if (!Array.isArray(x[k])) x[k] = [];
-    for (const k of ["fatti", "note"]) if (!x[k] || typeof x[k] !== "object") x[k] = {};
+    for (const k of ["fatti", "note", "val", "profili"]) if (!x[k] || typeof x[k] !== "object") x[k] = {};
     if (!Number.isFinite(+x.cambio)) x.cambio = 0;
+    if (!Number.isFinite(+x.cambioQ)) x.cambioQ = 0;
+    if (typeof x.valP !== "string") x.valP = "";
+    if (typeof x.cambioData !== "string") x.cambioData = "";
     if (x.riserv && typeof x.riserv !== "object") x.riserv = null;
     return x;
   } catch { return vuoto(); }
@@ -41,7 +44,9 @@ function normLink(s) {
   try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ""; } catch { return ""; }
 }
 const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
-const luogo = x => encodeURIComponent(/Luton/.test(x) ? x : x + ", London");
+const luogo = x => encodeURIComponent(/Luton|London|Londra/.test(x) ? x : x + ", London");
+const casaQ = () => (S.riserv && S.riserv.alloggio && S.riserv.alloggio.indirizzo) || "";
+const qt = t => (t.casa && casaQ()) || t.q;
 function mapsUrl(qs, modo) {
   const q = qs.filter(Boolean);
   if (!q.length) return "";
@@ -89,11 +94,11 @@ function vistaGiorni() {
     const nk = `${g}-${i}`, nt = (S.note[nk] && S.note[nk].t) || "";
     return `<li data-i="${i}">${t.ora ? `<span class="ora">${esc(t.ora)}</span>` : ""}<div class="nome">${esc(t.nome)}</div>
     ${t.desc ? `<div class="desc">${esc(t.desc)}</div>` : ""}
-    <div class="riga">${t.costo ? `<span class="pill">${esc(t.costo)}</span>` : ""}${t.q ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([t.q], d.mezzo)}">Mappa<span class="vh"> di ${esc(t.nome)}</span></a>` : ""}</div>
+    <div class="riga">${t.costo ? `<span class="pill">${esc(t.costo)}</span>` : ""}${t.q ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(t)], d.mezzo)}">Mappa<span class="vh"> di ${esc(t.nome)}</span></a>` : ""}</div>
     <details class="nota-t"${nt ? " open" : ""}><summary>${nt ? "Nota personale" : "Aggiungi nota"}</summary>
     <textarea rows="2" maxlength="500" data-chg="nota" data-v="${nk}" aria-label="Nota personale per ${esc(t.nome)}" placeholder="Solo sul tuo telefono">${esc(nt)}</textarea></details></li>`;
   }).join("");
-  const percorso = mapsUrl(d.tappe.map(t => t.q), d.mezzo);
+  const percorso = mapsUrl(d.tappe.map(qt), d.mezzo);
   const pub = d.pub ? `<div class="card pub"><h3 style="margin-top:0">Pub</h3><div class="nome">${esc(d.pub.nome)}</div>
     <div class="desc">${esc(d.pub.dove)}</div><div class="desc" style="margin-top:6px">${esc(d.pub.alt)}</div>
     <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([d.pub.q], d.mezzo)}">Mappa del pub</a></div></div>` : "";
@@ -114,7 +119,8 @@ function vistaPrenot() {
     <div class="card"><div class="nome">Cena della vigilia, Idalia</div><div class="desc">Pillar Hall, 5 Olympia Way, London W14 0EY. Gio 24/12 alle 20:15, tavolo per 5. Tolleranza di 15 minuti.</div>
       ${r && r.idalia ? `<div class="codice">OpenTable n. ${esc(r.idalia.conferma)}</div><div class="mute">Nome: ${esc(r.idalia.nome)}</div>` : `<div class="mute">Conferma nel file riservato.</div>`}
       <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl(["Idalia, Pillar Hall, 5 Olympia Way, London W14 0EY"], "transit")}">Mappa</a></div></div>
-    <div class="card"><div class="nome">Alloggio</div><div class="desc">A pochi passi da King's Cross. Indirizzo non ancora noto.</div></div>
+    <div class="card"><div class="nome">Alloggio</div><div class="desc">Vicino a King's Cross.</div>
+      ${casaQ() ? `<div class="codice" style="font-size:1rem;letter-spacing:0">${esc(casaQ())}</div><div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([casaQ()], "transit")}">Mappa dell'alloggio</a></div>` : `<div class="mute">Indirizzo nel file riservato: importalo da «Altro».</div>`}</div>
     ${r && r.bambina ? `<div class="card"><div class="nome">Gruppo</div><div class="desc">${esc(gruppo().join(", "))} e ${esc(r.bambina)} (4 anni).</div></div>` : ""}
     <h3>Da fare</h3><div class="card">${fatti}</div>
     <h3>Da verificare</h3><div class="card"><ul class="lista">${TRIP.daVerificare.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
@@ -213,11 +219,13 @@ function vistaSpese() {
 
 /* altro: scambio, valigia, frasi */
 function vistaAltro() {
-  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["frasi", "Frasi"]]
+  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"]]
     .map(([v, l]) => `<button class="chip piccolo${sub === v ? " on" : ""}" data-az="sub" data-v="${v}" aria-pressed="${sub === v}">${l}</button>`).join("");
   let corpo = "";
   if (sub === "valigia") {
-    corpo = `<div class="card">${TRIP.valigia.map(v => casella("v_" + v.id, v.t, v.d)).join("")}</div>`;
+    corpo = vistaValigia();
+  } else if (sub === "cambio") {
+    corpo = vistaCambio();
   } else if (sub === "frasi") {
     corpo = `<div class="card">${TRIP.frasi.map(([it, en]) => `<div class="frase"><div class="mute">${esc(it)}</div><div class="nome" lang="en-GB">${esc(en)}</div></div>`).join("")}</div>
       <h3>Numeri utili nel Regno Unito</h3><div class="card">${TRIP.emergenze.map(e => `<div class="frase"><a class="map" href="tel:${e.n}">Chiama ${e.n}</a><div class="desc">${esc(e.t)}</div></div>`).join("")}</div>
@@ -225,6 +233,51 @@ function vistaAltro() {
   } else corpo = vistaScambio();
   return `<h2>Altro</h2>${avviso()}<div class="chips avvolgi" role="group" aria-label="Sezione di Altro">${seg}</div>${corpo}`;
 }
+/* valigia per persona e profilo */
+const persone = () => [...gruppo(), (S.riserv && S.riserv.bambina) || "Bambina"];
+const profiloDi = p => (p === persone()[persone().length - 1] ? "bambina" : (S.profili[p] || ""));
+const testoD = (d, g, n) => (typeof d === "function" ? d(g, n) : d || "");
+function vistaValigia() {
+  const ps = persone(), gg = TRIP.giorni.length, nn = gg - 1;
+  if (!ps.includes(S.valP)) S.valP = "";
+  const chips = ps.map(p => `<button class="chip piccolo${p === S.valP ? " on" : ""}" data-az="valP" data-v="${esc(p)}" aria-pressed="${p === S.valP}">${esc(p)}</button>`).join("");
+  const testa = `<div class="card"><div class="nome">Valigia per ${gg} giorni e ${nn} notti</div>
+    <div class="desc">A dicembre a Londra di solito fa freddo e piove: vestiti a strati. Bagaglio a mano 40x30x20, quindi le cose più ingombranti si indossano in aereo.</div>
+    <div class="chips avvolgi" role="group" aria-label="Chi sei">${chips}</div></div>`;
+  if (!S.valP) return testa + `<div class="vuoto">Scegli il tuo nome per vedere la tua lista.</div>`;
+  const pr = profiloDi(S.valP);
+  if (!pr) return testa + `<div class="card"><div class="nome">Che lista vuoi?</div><div class="riga">${["uomo", "donna"].map(k => `<button class="btn pri" data-az="profilo" data-v="${k}">${TRIP.profili[k]}</button>`).join("")}</div></div>`;
+  const mia = (S.val[S.valP] = S.val[S.valP] && typeof S.val[S.valP] === "object" ? S.val[S.valP] : {});
+  const voci = TRIP.valigia.filter(v => v.per.includes(pr));
+  const fatte = voci.filter(v => mia[v.id]).length;
+  const cat = [...new Set(voci.map(v => v.cat))].map(c => `<h3>${esc(c)}</h3><div class="card">${voci.filter(v => v.cat === c).map(v => {
+    const q = v.q ? v.q(gg, nn) : 0, d = testoD(v.d, gg, nn);
+    return `<label class="c${mia[v.id] ? " fatto" : ""}"><input type="checkbox" data-chg="spuntaV" data-v="${v.id}"${mia[v.id] ? " checked" : ""}><span><b>${q > 1 ? `${q} × ` : ""}${esc(v.t)}</b>${d ? `<br><small class="mute">${esc(d)}</small>` : ""}</span></label>`;
+  }).join("")}</div>`).join("");
+  return `${testa}<div class="card"><div class="nome">${esc(S.valP)}: ${TRIP.profili[pr]}</div>
+    <div class="desc">${fatte} su ${voci.length} cose preparate</div><progress max="${voci.length}" value="${fatte}" aria-label="Avanzamento valigia"></progress>
+    <div class="riga">${pr !== "bambina" ? `<button class="btn" data-az="profilo" data-v="">Cambia lista</button>` : ""}<button class="btn rosso" data-az="azzeraV">Azzera le spunte</button></div></div>${cat}`;
+}
+
+/* cambio valuta, anche senza rete: usa l'ultimo cambio salvato */
+const quando = ms => new Date(ms).toLocaleString("it-IT", { day: "numeric", month: "long", hour: "2-digit", minute: "2-digit" });
+function vistaCambio() {
+  const c = S.cambio, ok = c > 0;
+  const gbpList = [1, 5, 10, 20, 50, 100], eurList = [10, 20, 50, 100];
+  return `<div class="card"><div class="nome">Cambio sterline ed euro</div>
+    <div class="desc">Funziona anche senza rete: usa l'ultimo cambio salvato nel telefono. Quello della carta o dei cambiavalute può essere diverso.</div>
+    <label class="mute" for="c-gbp">Sterline (£)</label><input type="number" id="c-gbp" data-conv="gbp" inputmode="decimal" step="0.01" min="0" placeholder="0,00"${ok ? "" : " disabled"}>
+    <label class="mute" for="c-eur">Euro (€)</label><input type="number" id="c-eur" data-conv="eur" inputmode="decimal" step="0.01" min="0" placeholder="0,00"${ok ? "" : " disabled"}>
+    ${ok ? "" : `<div class="mute">Imposta il cambio qui sotto oppure aggiornalo online.</div>`}</div>
+    <div class="card"><label class="mute" for="cambio">Cambio: 1 sterlina vale quanti euro?</label>
+    <input type="number" id="cambio" data-chg="cambio" step="0.0001" min="0" inputmode="decimal" placeholder="Es. 1,19" value="${ok ? c : ""}">
+    <div class="desc">${S.cambioQ ? `Ultimo aggiornamento online: ${esc(quando(S.cambioQ))}${S.cambioData ? `, dati del ${esc(S.cambioData)}` : ""}.` : ok ? "Inserito a mano." : "Non ancora impostato."}</div>
+    <div class="riga"><button class="btn pri" data-az="cambioOnline">Aggiorna cambio (serve rete)</button></div></div>
+    ${ok ? `<div class="card"><div class="nome">Tabella rapida</div>
+    <div class="tabella"><div><b>Sterline</b>${gbpList.map(x => `<div>£${x} = ${eur(x * c)}</div>`).join("")}</div>
+    <div><b>Euro</b>${eurList.map(x => `<div>€${x} = ${gbp(x / c)}</div>`).join("")}</div></div></div>` : ""}`;
+}
+
 function vistaScambio() {
   const ps = gruppo();
   return `<div class="card"><div class="nome">Chi sei?</div>
@@ -316,6 +369,7 @@ function pulisciRiserv(j) {
   if (typeof j.bambina === "string") o.bambina = s(j.bambina);
   if (j.voli && typeof j.voli === "object") o.voli = { andata: s(j.voli.andata, 20), ritorno: s(j.voli.ritorno, 20) };
   if (j.idalia && typeof j.idalia === "object") o.idalia = { conferma: s(j.idalia.conferma, 20), nome: s(j.idalia.nome) };
+  if (j.alloggio && typeof j.alloggio === "object") o.alloggio = { indirizzo: s(j.alloggio.indirizzo, 120) };
   return o;
 }
 function applica(j, n) {
@@ -375,8 +429,22 @@ const azioni = {
   delSpesa(v) { const s = trova("spese", v); if (s && confirm("Eliminare la spesa?")) { s.del = true; s.ts = Date.now(); salva(); render(); focaTitolo(); } },
   fatto(v) { S.fatti[v] = !S.fatti[v]; salva(); render(); },
   nota(_, el) { const k = el.dataset.v, t = el.value.trim(); if (t) S.note[k] = { t, ts: Date.now() }; else delete S.note[k]; salva(); },
-  cambio(_, el) { const n = Number(String(el.value).replace(",", ".")); S.cambio = n > 0 ? n : 0; salva(); render(); },
+  cambio(_, el) { const n = Number(String(el.value).replace(",", ".")); S.cambio = n > 0 ? n : 0; S.cambioQ = 0; S.cambioData = ""; salva(); render(); },
   me(v) { S.me = v; salva(); msg = ""; render(); },
+  valP(v) { S.valP = v; salva(); render(); },
+  profilo(v) { if (S.valP) { if (v) S.profili[S.valP] = v; else delete S.profili[S.valP]; salva(); render(); } },
+  spuntaV(v) { if (!S.valP) return; const m = (S.val[S.valP] = S.val[S.valP] || {}); m[v] = !m[v]; salva(); render(); },
+  azzeraV() { if (S.valP && confirm("Azzerare tutte le spunte della lista di " + S.valP + "?")) { S.val[S.valP] = {}; salva(); render(); } },
+  async cambioOnline() {
+    try {
+      const r = await fetch("https://api.frankfurter.dev/v1/latest?base=GBP&symbols=EUR", { cache: "no-store" });
+      const j = await r.json(), v = Number(j && j.rates && j.rates.EUR);
+      if (!(v > 0)) throw new Error("risposta non valida");
+      S.cambio = v; S.cambioQ = Date.now(); S.cambioData = String(j.date || "").slice(0, 10); salva();
+      msg = `Cambio aggiornato: 1 £ vale ${String(v).replace(".", ",")} €.`;
+    } catch { msg = "Nessuna rete o servizio non raggiungibile: resta l'ultimo cambio salvato."; }
+    render();
+  },
   reset() { if (confirm("Cancellare idee, spese, note e dati riservati da questo telefono?")) { try { localStorage.removeItem(CH); } catch { /* ok */ } S = vuoto(); msg = ""; render(); } },
   neve() { S.neve = S.neve === false; salva(); const c = $("#neve"); if (c) c.hidden = S.neve === false; render(); },
   importa(_, el) { importaFile([...el.files]); },
@@ -425,6 +493,12 @@ document.addEventListener("click", e => { const t = e.target.closest("[data-az]"
 document.addEventListener("change", e => {
   const t = e.target.closest("[data-chg]"); if (!t) return;
   azioni[t.dataset.chg](t.type === "file" ? "" : (t.type === "checkbox" || t.tagName === "TEXTAREA" ? t.dataset.v : t.value), t);
+});
+document.addEventListener("input", e => {
+  const t = e.target.closest("[data-conv]"); if (!t || !(S.cambio > 0)) return;
+  const altro = $(t.dataset.conv === "gbp" ? "#c-eur" : "#c-gbp"), v = Number(String(t.value).replace(",", "."));
+  if (!altro) return;
+  altro.value = Number.isFinite(v) && t.value !== "" ? (Math.round((t.dataset.conv === "gbp" ? v * S.cambio : v / S.cambio) * 100) / 100).toFixed(2) : "";
 });
 document.addEventListener("submit", e => { const f = e.target.closest("form[data-form]"); if (f) { e.preventDefault(); moduli[f.dataset.form](new FormData(f), f); } });
 

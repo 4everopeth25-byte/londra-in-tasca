@@ -1,5 +1,5 @@
 /* Londra in tasca: tiene l'app in memoria per usarla senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-4";
+const VERSIONE = "lit-5";
 const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "installa.js", "manifest.webmanifest",
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
 self.addEventListener("install", e => e.waitUntil(

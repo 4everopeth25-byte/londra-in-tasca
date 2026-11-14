@@ -101,6 +101,9 @@ label.mute{display:block;margin:0 0 -4px}
 .nota-t textarea{margin-top:6px}
 details.nuova>summary{font-weight:800;color:var(--sakura);cursor:pointer;min-height:44px;display:flex;align-items:center}
 details.nuova[open]>summary{margin-bottom:8px}
+progress{width:100%;height:12px;accent-color:var(--sakura);margin:6px 0}
+.tabella{display:grid;grid-template-columns:1fr 1fr;gap:12px}
+.tabella>div>div{padding:6px 0;border-bottom:1px solid var(--linea)}
 .frase{padding:8px 0;border-bottom:1px solid var(--linea)}
 .frase:last-child{border:0}
 fieldset.chk{border:0;padding:0;margin:0}
