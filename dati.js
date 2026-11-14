@@ -4,6 +4,7 @@ const TUTTI = ["uomo", "donna", "bambina"];
 const TRIP = {
   partenza: "2026-12-23T19:05:00",
   gruppoDefault: ["Francesco", "Sara", "Rosa", "Giuliano"],
+  alloggio: { testo: "77 Caledonian Road, Islington, Londra, N1 9BT, Regno Unito", q: "77 Caledonian Road, Islington, London N1 9BT, UK" },
   giorni: [
     {
       iso: "2026-12-23", breve: "23 mer", data: "Mercoledì 23 dicembre", titolo: "Arrivo e prima sera", mezzo: "transit",
@@ -11,7 +12,7 @@ const TRIP = {
         { ora: "19:05", nome: "Volo Wizz Air W4 6747", desc: "Venezia Marco Polo → Londra Luton, arrivo alle 20:25. Solo bagaglio a mano 40x30x20." },
         { ora: "20:25", nome: "Arrivo a Luton", desc: "Luton DART (4 minuti) fino a Luton Airport Parkway.", costo: "£4,90 il DART", q: "Luton Airport Parkway Station" },
         { ora: "Poi", nome: "Treno per St Pancras", desc: "Thameslink o Luton Airport Express, pagamento con carta contactless.", costo: "circa £15,10 off-peak", q: "St Pancras International" },
-        { ora: "~22:00", nome: "Check-in alloggio", desc: "Vicino a King's Cross. L'indirizzo è nei dati riservati.", q: "King's Cross Station", casa: true },
+        { ora: "~22:00", nome: "Check-in alloggio", desc: "77 Caledonian Road, vicino a King's Cross.", q: "King's Cross Station", casa: true },
         { ora: "Dopo il check-in", nome: "Cena da Dishoom King's Cross", desc: "Il mercoledì chiude alle 23. Accoglie i bambini.", q: "Dishoom King's Cross" }
       ],
       pub: { nome: "The Parcel Yard", dove: "dentro la stazione di King's Cross", q: "The Parcel Yard King's Cross", alt: "Con la bambina: lo stesso Parcel Yard, che ha un menu bambini, oppure Dishoom." },

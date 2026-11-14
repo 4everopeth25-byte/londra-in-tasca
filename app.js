@@ -45,7 +45,7 @@ function normLink(s) {
 }
 const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
 const luogo = x => encodeURIComponent(/Luton|London|Londra/.test(x) ? x : x + ", London");
-const casaQ = () => (S.riserv && S.riserv.alloggio && S.riserv.alloggio.indirizzo) || "";
+const casaQ = () => (S.riserv && S.riserv.alloggio && S.riserv.alloggio.indirizzo) || TRIP.alloggio.q;
 const qt = t => (t.casa && casaQ()) || t.q;
 function mapsUrl(qs, modo) {
   const q = qs.filter(Boolean);
@@ -120,7 +120,8 @@ function vistaPrenot() {
       ${r && r.idalia ? `<div class="codice">OpenTable n. ${esc(r.idalia.conferma)}</div><div class="mute">Nome: ${esc(r.idalia.nome)}</div>` : `<div class="mute">Conferma nel file riservato.</div>`}
       <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl(["Idalia, Pillar Hall, 5 Olympia Way, London W14 0EY"], "transit")}">Mappa</a></div></div>
     <div class="card"><div class="nome">Alloggio</div><div class="desc">Vicino a King's Cross.</div>
-      ${casaQ() ? `<div class="codice" style="font-size:1rem;letter-spacing:0">${esc(casaQ())}</div><div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([casaQ()], "transit")}">Mappa dell'alloggio</a></div>` : `<div class="mute">Indirizzo nel file riservato: importalo da «Altro».</div>`}</div>
+      <div class="codice" style="font-size:1rem;letter-spacing:0">${esc(TRIP.alloggio.testo)}</div>
+      <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([casaQ()], "transit")}">Mappa dell'alloggio</a></div></div>
     ${r && r.bambina ? `<div class="card"><div class="nome">Gruppo</div><div class="desc">${esc(gruppo().join(", "))} e ${esc(r.bambina)} (4 anni).</div></div>` : ""}
     <h3>Da fare</h3><div class="card">${fatti}</div>
     <h3>Da verificare</h3><div class="card"><ul class="lista">${TRIP.daVerificare.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
