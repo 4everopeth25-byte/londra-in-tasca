@@ -112,3 +112,15 @@ fieldset.chk{border:0;padding:0;margin:0}
 .conto{transform:rotate(-2deg)}
 .hero .kan{font-size:2.4rem;letter-spacing:.06em;top:2px}
 @media (prefers-reduced-motion:reduce){#neve{display:none}*{scroll-behavior:auto!important;transition:none!important}}
+
+.sond{margin-top:8px;padding:8px 10px;border:1px dashed var(--linea);border-radius:12px}
+.stato.on.s1{background:var(--verde);color:#06281a;border-color:var(--verde)}
+.stato.on.s2{background:var(--rosso);color:#2a0008;border-color:var(--rosso)}
+.stato.on.s3{background:var(--oro);color:#2a1a00;border-color:var(--oro)}
+.stato[disabled]{opacity:.55;cursor:default}
+.pill.st0{background:rgba(255,255,255,.08);color:var(--ink);border-color:var(--linea)}
+.pill.st2{background:rgba(255,93,115,.16);color:var(--rosso);border-color:rgba(255,93,115,.5)}
+.pill.st3{background:rgba(255,211,110,.16);color:var(--oro);border-color:rgba(255,211,110,.5)}
+.tab button{position:relative}
+.badge{position:absolute;top:2px;left:calc(50% + 6px);min-width:20px;height:20px;border-radius:10px;background:var(--rosso);color:#fff;font-size:.72rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px;border:2px solid var(--bg)}
+.badge[hidden]{display:none}

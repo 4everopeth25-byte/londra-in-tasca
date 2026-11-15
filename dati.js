@@ -3,6 +3,7 @@ const ADULTI = ["uomo", "donna"];
 const TUTTI = ["uomo", "donna", "bambina"];
 const TRIP = {
   partenza: "2026-12-23T19:05:00",
+  organizzatore: "Francesco",
   gruppoDefault: ["Francesco", "Sara", "Rosa", "Giuliano"],
   alloggio: { testo: "77 Caledonian Road, Islington, Londra, N1 9BT, Regno Unito", q: "77 Caledonian Road, Islington, London N1 9BT, UK" },
   giorni: [

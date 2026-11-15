@@ -8,7 +8,7 @@ const num = n => (Math.round(n * 100) / 100).toFixed(2).replace(".", ",");
 const gbp = n => "£" + num(n);
 const eur = n => "€" + num(n);
 const vivi = a => a.filter(x => !x.del);
-const STATI = ["da valutare", "sì", "no", "fatta"];
+const STATI = ["in votazione", "approvata", "respinta", "fatta"];
 
 const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", riserv: null });
 let S = carica();
@@ -33,7 +33,7 @@ const oggiIso = (n = new Date()) => `${n.getFullYear()}-${String(n.getMonth() + 
 const oggiNelViaggio = () => TRIP.giorni.some(d => d.iso === oggiIso());
 function giornoIniziale() { const i = TRIP.giorni.findIndex(d => d.iso === oggiIso()); return i < 0 ? 0 : i; }
 
-let tab = "giorni", g = giornoIniziale(), msg = "", sub = "scambio", filtroG = null, edit = null, bozza = null;
+let tab = "giorni", g = giornoIniziale(), msg = "", sub = "scambio", filtroG = null, filtroS = null, edit = null, bozza = null;
 
 /* ---------- link e Google Maps ---------- */
 const primoLink = s => { const m = /https?:\/\/[^\s<>"']+/i.exec(String(s || "")); return m ? m[0].replace(/[.,;)]+$/, "") : ""; };
@@ -132,8 +132,23 @@ function casella(id, t, d) {
 }
 
 /* idee */
-const voti = i => Object.values(i.voti || {}).filter(v => v && v[0] === 1).length;
-const votato = i => !!(S.me && i.voti && i.voti[S.me] && i.voti[S.me][0] === 1);
+/* sondaggio: voti 1 = sì, 2 = no, 3 = non so, 0 = nessun voto. Votano i quattro adulti, vince la maggioranza di chi ha votato sì o no. */
+const votanti = () => gruppo();
+const miVoto = i => (S.me && i.voti && i.voti[S.me] && i.voti[S.me][0]) || 0;
+const possoVotare = () => !!S.me && votanti().includes(S.me);
+const possoChiudere = i => !!S.me && (i.autore === S.me || S.me === TRIP.organizzatore);
+function conteggio(i) {
+  const c = { s: 0, n: 0, x: 0 }, mancano = [];
+  votanti().forEach(p => { const k = i.voti && i.voti[p] ? i.voti[p][0] : 0; if (k === 1) c.s++; else if (k === 2) c.n++; else if (k === 3) c.x++; else mancano.push(p); });
+  const esito = c.s + c.n === 0 ? "nessun voto" : c.s > c.n ? "approvata" : c.n > c.s ? "respinta" : "pari";
+  return { c, mancano, esito, votato: votanti().length - mancano.length };
+}
+const daVotareIdea = i => !i.del && +i.stato === 0 && possoVotare() && miVoto(i) === 0;
+const daVotare = () => vivi(S.idee).filter(daVotareIdea).length;
+function avvisaVoti() {
+  const n = daVotare();
+  if (n > 0) toast(`Hai ${n} ${n === 1 ? "idea" : "idee"} da votare. Tocca per votare.`, () => { tab = "idee"; filtroS = "mie"; msg = ""; edit = null; scrollTo(0, 0); render(); focaTitolo(); });
+}
 function formIdea(x = {}) {
   const mod = !!x.id;
   return `<form class="f" data-form="idea"><input type="hidden" name="id" value="${esc(x.id || "")}">
@@ -147,25 +162,40 @@ function vistaIdee() {
   const ps = gruppo();
   const filtri = [["", "Tutte"], ...TRIP.giorni.map((d, i) => [String(i + 1), "Giorno " + (i + 1)]), ["0", "Senza giorno"]]
     .map(([v, l]) => `<button class="chip piccolo${(filtroG ?? "") === v ? " on" : ""}" data-az="filtro" data-v="${v}" aria-pressed="${(filtroG ?? "") === v}">${l}</button>`).join("");
-  const lista = vivi(S.idee).filter(i => filtroG == null || +i.giorno === +filtroG).sort((a, b) => b.ts - a.ts).map(i => {
-    const l = normLink(i.link), h = host(l);
+  const filtriS = [["", "Tutti gli stati"], ["mie", "Da votare da me"], ["0", "In votazione"], ["1", "Approvate"], ["2", "Respinte"], ["3", "Fatte"]]
+    .map(([v, l]) => `<button class="chip piccolo${(filtroS ?? "") === v ? " on" : ""}" data-az="filtroS" data-v="${v}" aria-pressed="${(filtroS ?? "") === v}">${l}</button>`).join("");
+  const passa = i => (filtroG == null || +i.giorno === +filtroG) && (filtroS == null || (filtroS === "mie" ? daVotareIdea(i) : +i.stato === +filtroS));
+  const lista = vivi(S.idee).filter(passa).sort((a, b) => b.ts - a.ts).map(i => {
+    const l = normLink(i.link), h = host(l), id = esc(i.id), k = conteggio(i), mio = miVoto(i), aperta = +i.stato === 0, chiude = possoChiudere(i);
+    const bv = (n, lab) => `<button class="stato s${n}${mio === n ? " on" : ""}" data-az="vota" data-v="${id}:${n}" aria-pressed="${mio === n}"${aperta ? "" : " disabled"}>${lab}<span class="vh"> per ${esc(i.testo)}</span></button>`;
+    const chiusura = [aperta && chiude ? `<button class="btn" data-az="chiudi" data-v="${id}:1">Chiudi: approvata</button><button class="btn" data-az="chiudi" data-v="${id}:2">Chiudi: respinta</button>` : "",
+      +i.stato === 1 && chiude ? `<button class="btn" data-az="chiudi" data-v="${id}:3">Segna come fatta</button>` : "",
+      !aperta && chiude ? `<button class="btn" data-az="chiudi" data-v="${id}:0">Riapri</button>` : ""].join("");
     return `<div class="card"><div class="nome">${esc(i.testo)}</div>
     ${i.nota ? `<div class="desc">${esc(i.nota)}</div>` : ""}
-    ${l ? `<div class="riga"><a class="map" target="_blank" rel="noopener noreferrer" href="${esc(l)}">Apri link<span class="vh"> di ${esc(i.testo)}</span> · ${esc(h)}</a></div>` : ""}
+    ${l ? `<div class="riga"><a class="map" target="_blank" rel="noopener noreferrer" href="${esc(l)}">Apri link<span class="vh"> di ${esc(i.testo)}</span>&nbsp;·&nbsp;${esc(h)}</a></div>` : ""}
     <div class="desc">${esc(i.autore || "senza nome")}${+i.giorno ? ` · giorno ${+i.giorno}` : ""}</div>
-    <div class="riga"><button class="stato s${i.stato}" data-az="stato" data-v="${esc(i.id)}" aria-label="Stato: ${STATI[i.stato]}. Tocca per cambiare">${STATI[i.stato]}</button>
-    <button class="stato voto${votato(i) ? " s1" : ""}" data-az="voto" data-v="${esc(i.id)}" aria-pressed="${votato(i)}" aria-label="Mi piace, ${voti(i)} voti">👍 ${voti(i)}</button>
-    <button class="btn" data-az="modIdea" data-v="${esc(i.id)}">Modifica<span class="vh"> ${esc(i.testo)}</span></button>
-    <button class="btn tondo rosso" data-az="delIdea" data-v="${esc(i.id)}" aria-label="Elimina ${esc(i.testo)}">✕</button></div></div>`;
+    <div class="riga"><span class="pill st${+i.stato}">${STATI[+i.stato] || STATI[0]}</span>${i.chiusoDa && !aperta ? `<span class="mute">chiusa da ${esc(i.chiusoDa)}</span>` : ""}</div>
+    <div class="sond" role="group" aria-label="Sondaggio: ${esc(i.testo)}">
+      <div class="desc">Sì ${k.c.s} · No ${k.c.n} · Non so ${k.c.x}. Hanno votato ${k.votato} su ${votanti().length}${k.mancano.length ? `, mancano ${esc(k.mancano.join(", "))}` : ""}.</div>
+      ${aperta ? `<div class="desc">Secondo la maggioranza: <b>${k.esito}</b>.</div>` : ""}
+      <div class="riga">${bv(1, "Sì")}${bv(2, "No")}${bv(3, "Non so")}</div></div>
+    ${chiusura ? `<div class="riga">${chiusura}</div>` : ""}
+    <div class="riga"><button class="btn" data-az="modIdea" data-v="${id}">Modifica<span class="vh"> ${esc(i.testo)}</span></button>
+    <button class="btn tondo rosso" data-az="delIdea" data-v="${id}" aria-label="Elimina ${esc(i.testo)}">✕</button></div></div>`;
   }).join("");
   const ed = edit && edit.k === "idee" ? S.idee.find(x => x.id === edit.id && !x.del) : null;
+  const dv = daVotare();
   return `<h2>Idee</h2>${avviso()}
-    <p class="mute">Aggiungi idee e link: poi le mandi da «Altro» e vengono unite alle altre.</p>
+    <p class="mute">Ogni idea è un sondaggio: votano i quattro adulti, vince la maggioranza. Le idee e i voti si scambiano da «Altro».</p>
     ${S.me ? "" : `<div class="card"><label class="mute" for="chisei">Chi sei? Serve per firmare idee e voti.</label>
     <select id="chisei" data-chg="me"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option>${esc(p)}</option>`).join("")}</select></div>`}
+    ${dv > 0 && filtroS !== "mie" ? `<div class="card adesso"><b>Hai ${dv} ${dv === 1 ? "idea" : "idee"} da votare.</b><div class="riga"><button class="btn pri" data-az="filtroS" data-v="mie">Mostra</button></div></div>` : ""}
     <details class="card nuova"${ed || bozza ? " open" : ""}><summary>+ Nuova idea</summary>${formIdea(ed || bozza || {})}</details>
-    <div class="chips avvolgi" role="group" aria-label="Filtra per giorno">${filtri}</div>
-    ${lista || `<div class="vuoto">Nessuna idea${filtroG != null ? " per questo filtro" : " ancora"}.</div>`}`;
+    <details class="card nuova"${filtroG != null || filtroS != null ? " open" : ""}><summary>Filtri${filtroG != null || filtroS != null ? " (attivi)" : ""}</summary>
+    <div class="chips avvolgi" role="group" aria-label="Filtra per stato">${filtriS}</div>
+    <div class="chips avvolgi" role="group" aria-label="Filtra per giorno">${filtri}</div></details>
+    ${lista || `<div class="vuoto">Nessuna idea${filtroG != null || filtroS != null ? " per questo filtro" : " ancora"}.</div>`}`;
 }
 
 /* spese */
@@ -318,6 +348,9 @@ function render() {
   const gg = Math.ceil((new Date(TRIP.partenza) - new Date()) / 864e5);
   $("#conto").innerHTML = gg > 0 ? `<b>${gg}</b><span>giorni</span>` : `<b>🎄</b><span>buon viaggio</span>`;
   aggiornaAdesso();
+  const dv = daVotare(), bd = $("#badge-idee"), bt = $('.tab [data-t="idee"]');
+  if (bd) { bd.hidden = !dv; bd.textContent = dv; }
+  if (bt) { if (dv) bt.setAttribute("aria-label", `Idee, ${dv} da votare`); else bt.removeAttribute("aria-label"); }
 }
 
 /* ---------- scambio dati ---------- */
@@ -341,7 +374,7 @@ const unisciVoti = (a, b) => {
   for (const src of [a, b]) for (const n of Object.keys(src || {})) {
     if (n === "__proto__" || n.length > 40) continue;
     const v = src[n]; if (!Array.isArray(v)) continue;
-    const w = [v[0] === 1 ? 1 : 0, tsOk(v[1])];
+    const w = [[1, 2, 3].includes(v[0]) ? v[0] : 0, tsOk(v[1])];
     if (!Object.prototype.hasOwnProperty.call(o, n) || w[1] > o[n][1]) o[n] = w;
   }
   return o;
@@ -354,7 +387,7 @@ function unisci(k, x) {
     Object.assign(y, { desc: str(x.desc, 80), importo: imp, chi: str(x.chi, 40), tra: nomi(x.tra) });
   } else {
     Object.assign(y, { testo: str(x.testo, 200), link: normLink(x.link), nota: str(x.nota, 200), giorno: [0, 1, 2, 3, 4, 5].includes(+x.giorno) ? +x.giorno : 0,
-      stato: [0, 1, 2, 3].includes(+x.stato) ? +x.stato : 0, autore: str(x.autore, 40), voti: unisciVoti({}, x.voti) });
+      stato: [0, 1, 2, 3].includes(+x.stato) ? +x.stato : 0, autore: str(x.autore, 40), chiusoDa: str(x.chiusoDa, 40), voti: unisciVoti({}, x.voti) });
   }
   const i = S[k].findIndex(z => z.id === y.id);
   if (i < 0) { S[k].push(y); return true; }
@@ -382,7 +415,7 @@ function applica(j, n) {
 function esito(n, err) {
   salva();
   msg = `Importato: ${n.idee} idee, ${n.spese} spese${n.riserv ? ", dati riservati" : ""}${err ? `. Non validi: ${err}` : ""}.`;
-  render();
+  render(); avvisaVoti();
 }
 async function importaFile(files) {
   const n = { idee: 0, spese: 0, riserv: false }; let err = 0;
@@ -417,11 +450,19 @@ const azioni = {
   giorno(v) { g = +v; render(); },
   sub(v) { sub = v; msg = ""; render(); },
   filtro(v) { filtroG = v === "" ? null : v; render(); },
-  stato(v) { const i = trova("idee", v); if (i) { i.stato = (i.stato + 1) % 4; i.ts = Date.now(); salva(); render(); } },
-  voto(v) {
-    const i = trova("idee", v); if (!i) return;
-    if (!S.me) { msg = "Scegli prima il tuo nome, in alto nella pagina."; render(); return; }
-    i.voti = i.voti || {}; i.voti[S.me] = [votato(i) ? 0 : 1, Date.now()]; salva(); render();
+  filtroS(v) { filtroS = v === "" ? null : v; render(); },
+  vota(v) {
+    const [id, k] = String(v).split(":"), i = trova("idee", id); if (!i || +i.stato !== 0) return;
+    if (!possoVotare()) { msg = S.me ? "Il sondaggio è riservato ai quattro adulti del gruppo." : "Scegli prima il tuo nome: in alto nella pagina Idee."; render(); return; }
+    const n = +k; i.voti = i.voti || {}; i.voti[S.me] = [miVoto(i) === n ? 0 : n, Date.now()]; salva(); render();
+  },
+  chiudi(v) {
+    const [id, e] = String(v).split(":"), i = trova("idee", id), n = +e; if (!i || !possoChiudere(i) || ![0, 1, 2, 3].includes(n)) return;
+    if (n === 1 || n === 2) {
+      const k = conteggio(i);
+      if (((n === 1 && k.esito === "respinta") || (n === 2 && k.esito === "approvata")) && !confirm(`La maggioranza dei votanti è per «${k.esito}». Chiudere comunque come «${STATI[n]}»?`)) return;
+    }
+    i.stato = n; i.chiusoDa = n ? S.me : ""; i.ts = Date.now(); salva(); render();
   },
   modIdea(v) { edit = { k: "idee", id: v }; bozza = null; scrollTo(0, 0); render(); },
   modSpesa(v) { edit = { k: "spese", id: v }; scrollTo(0, 0); render(); },
@@ -479,7 +520,7 @@ const moduli = {
     const id = d.get("id"), campi = { testo, link: normLink(d.get("link")), nota: String(d.get("nota") || "").trim(), giorno: +d.get("giorno") || 0 };
     const x = id && trova("idee", id);
     if (x) Object.assign(x, campi, { ts: Date.now() });
-    else S.idee.push(Object.assign({ id: uid(), stato: 0, voti: {}, autore: S.me }, campi, { ts: Date.now() }));
+    else S.idee.push(Object.assign({ id: uid(), stato: 0, voti: possoVotare() ? { [S.me]: [1, Date.now()] } : {}, autore: S.me, chiusoDa: "" }, campi, { ts: Date.now() }));
     edit = null; bozza = null; msg = ""; salva(); render();
   },
   spesa(d) {
@@ -546,5 +587,5 @@ if ("serviceWorker" in navigator) {
   })();
 })();
 
-render();
+render(); avvisaVoti();
 setInterval(() => { if (tab === "giorni") aggiornaAdesso(); }, 30000);
