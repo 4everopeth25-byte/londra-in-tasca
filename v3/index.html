@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="it">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self' https://api.frankfurter.dev">
+<title>Londra in tasca 3</title>
+<meta name="theme-color" content="#0a0e27">
+<meta name="color-scheme" content="dark">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" href="icone/icona-192.png">
+<link rel="apple-touch-icon" href="icone/icona-192.png">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Londra 3">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div id="annuncio" class="vh" role="status" aria-live="polite" aria-atomic="true"></div>
+<canvas id="neve" aria-hidden="true"></canvas>
+<main id="vista"></main>
+<nav class="dock" id="dock" aria-label="Sezioni"></nav>
+<div id="toast" class="toast" hidden><button type="button" class="toast-azione"></button><button type="button" class="toast-x" aria-label="Chiudi avviso">&times;</button></div>
+<script src="dati.js"></script>
+<script src="app.js"></script>
+<script src="installa.js"></script>
+</body>
+</html>
