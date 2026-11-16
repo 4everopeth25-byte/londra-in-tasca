@@ -391,10 +391,10 @@ function vistaSpese() {
 
 /* altro */
 function vistaAltro() {
-  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"], ["sistema", "Sistema"]]
+  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"], ["sondaggio", "Sondaggio"], ["sistema", "Sistema"]]
     .map(([v, l]) => `<button class="chip" data-az="sub" data-v="${v}" aria-pressed="${sub === v}">${l}</button>`).join("");
-  const corpo = { scambio: vistaScambio, valigia: vistaValigia, cambio: vistaCambio, frasi: vistaFrasi, sistema: vistaSistema }[sub]();
-  return `<h1 class="vt">${{ scambio: "Scambio dati", valigia: "Valigia", cambio: "Cambio", frasi: "Frasi utili", sistema: "Sistema" }[sub]}</h1>${avviso()}<div class="chips avvolgi" role="group" aria-label="Sezione di Altro">${seg}</div><div class="pila">${corpo}</div>`;
+  const corpo = { scambio: vistaScambio, valigia: vistaValigia, cambio: vistaCambio, frasi: vistaFrasi, sondaggio: () => (typeof Sond !== "undefined" ? Sond.vista() : ""), sistema: vistaSistema }[sub]();
+  return `<h1 class="vt">${{ scambio: "Scambio dati", valigia: "Valigia", cambio: "Cambio", frasi: "Frasi utili", sondaggio: "Sondaggio collaborativo", sistema: "Sistema" }[sub]}</h1>${avviso()}<div class="chips avvolgi" role="group" aria-label="Sezione di Altro">${seg}</div><div class="pila">${corpo}</div>`;
 }
 function vistaValigia() {
   const ps = persone(), gg = TRIP.giorni.length, nn = gg - 1;
@@ -570,6 +570,7 @@ function render(foco) {
   aggiornaAdesso();
   if (tab === "viaggio" && vsub === "itin") osservaGuida();
   if (tab === "altro" && sub === "sistema") statoOffline();
+  if (typeof Sond !== "undefined") { if (tab === "altro" && sub === "sondaggio") Sond.ripresa(); else Sond.fuori(); }
 }
 async function statoOffline() {
   const el = $("#stato-offline"); if (!el) return;
