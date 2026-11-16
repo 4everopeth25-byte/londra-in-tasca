@@ -116,10 +116,7 @@ function mapsUrl(qs, modo) {
     (q.length > 2 ? `&waypoints=${q.slice(1, -1).map(luogo).join("%7C")}` : "") + `&travelmode=${modo}`;
 }
 const avviso = () => (msg ? `<div class="msg${msgTipo}">${esc(msg)}</div>` : "");
-const bannerSync = () => {
-  if (!SyncX.acceso()) return `<div class="msg avv" role="status"><b>Idee e sondaggi condivisi non sono attivi su questo telefono.</b> Per ora le idee restano solo qui. Tocca il link di attivazione ricevuto su WhatsApp, oppure apri Altro, Scambio.<div class="riga"><button class="btn" data-az="vai" data-v="altro:scambio">Apri Scambio</button></div></div>`;
-  const t = SyncX.testo(); return /rifiuta/.test(t) ? `<div class="msg avv" role="status">${esc(t)}</div>` : "";
-};
+const bannerSync = () => (typeof Sond !== "undefined" ? Sond.banner() : "");
 const dire = (t, tipo = "") => { msg = t; msgTipo = tipo ? " " + tipo : ""; };
 
 /* ---------- tempo: tappa in corso ---------- */
@@ -318,6 +315,7 @@ function schedaIdea(i) {
     <div class="riga"><button class="btn" data-az="modIdea" data-v="${id}">Modifica<span class="vh"> ${esc(i.testo)}</span></button><button class="btn tondo rosso" data-az="delIdea" data-v="${id}" aria-label="Elimina ${esc(i.testo)}">${ic("x", 18)}</button></div></div>`;
 }
 function vistaIdee() {
+  if (typeof Sond !== "undefined") return Sond.vistaIdee();
   const ps = gruppo(), dv = daVotare();
   const cats = [["", "Ogni categoria"], ...IDEE_CAT].map(([v, l]) => `<button class="chip" data-az="filtroC" data-v="${v}" aria-pressed="${(filtroC ?? "") === v}">${l}</button>`).join("");
   const stati = [["", "Ogni stato"], ["mie", "Da votare da me"], ["0", "In votazione"], ["1", "Approvate"], ["2", "Respinte"], ["3", "Fatte"]].map(([v, l]) => `<button class="chip" data-az="filtroS" data-v="${v}" aria-pressed="${(filtroS ?? "") === v}">${l}</button>`).join("");
@@ -391,7 +389,7 @@ function vistaSpese() {
 
 /* altro */
 function vistaAltro() {
-  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"], ["sondaggio", "Sondaggio"], ["sistema", "Sistema"]]
+  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"], ["sistema", "Sistema"]]
     .map(([v, l]) => `<button class="chip" data-az="sub" data-v="${v}" aria-pressed="${sub === v}">${l}</button>`).join("");
   const corpo = { scambio: vistaScambio, valigia: vistaValigia, cambio: vistaCambio, frasi: vistaFrasi, sondaggio: () => (typeof Sond !== "undefined" ? Sond.vista() : ""), sistema: vistaSistema }[sub]();
   return `<h1 class="vt">${{ scambio: "Scambio dati", valigia: "Valigia", cambio: "Cambio", frasi: "Frasi utili", sondaggio: "Sondaggio collaborativo", sistema: "Sistema" }[sub]}</h1>${avviso()}<div class="chips avvolgi" role="group" aria-label="Sezione di Altro">${seg}</div><div class="pila">${corpo}</div>`;
@@ -570,7 +568,6 @@ function render(foco) {
   aggiornaAdesso();
   if (tab === "viaggio" && vsub === "itin") osservaGuida();
   if (tab === "altro" && sub === "sistema") statoOffline();
-  if (typeof Sond !== "undefined") { if (tab === "altro" && sub === "sondaggio") Sond.ripresa(); else Sond.fuori(); }
 }
 async function statoOffline() {
   const el = $("#stato-offline"); if (!el) return;
