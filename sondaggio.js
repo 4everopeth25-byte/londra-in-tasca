@@ -8,8 +8,10 @@ const Sond = (() => {
   const FASI = ["", "Raccolta proposte", "Votazione", "Chiuso"];
   const catNome = k => (CAT.find(c => c[0] === k) || CAT[7])[1];
   let cl = null, ad = null, ad0 = null, uid = "", pronto = false, errore = "", admin = false, camp = null, me = null, canale = null, timer = 0, scad = 0;
-  let P = [], V = [], C = [], PA = [], CL = [], tutte = [];
-  const ui = { v: "proposte", id: null, cat: "", cerca: "", ord: "classifica", nuova: false, modif: null, cod: "" };
+  let P = [], V = [], C = [], PA = [], CL = [], tutte = [], lista = [], mieiIds = new Set(), canaleLista = null, timerL = 0;
+  const leggi = (k2, d) => { try { return JSON.parse(localStorage.getItem(k2)) || d; } catch { return d; } }, scrivi = (k2, v) => { try { localStorage.setItem(k2, JSON.stringify(v)); } catch { /* ok */ } };
+  const visti = new Set(leggi("lit-sond-visti", []));
+  const ui = { unisci: "", v: "proposte", id: null, cat: "", cerca: "", ord: "classifica", nuova: false, modif: null, cod: "" };
   const k = () => (admin ? ad : cl), ok = u => /^https:\/\//i.test(u || "");
   const gest = () => admin || (!!camp && camp.creato_da === uid);
   const fase = c => (!c ? 1 : c.fase === 3 || (c.chiusura && new Date(c.chiusura) <= Date.now()) ? 3 : c.fase === 1 && c.votazione_inizio && new Date(c.votazione_inizio) <= Date.now() ? 2 : c.fase);
@@ -25,7 +27,7 @@ const Sond = (() => {
     if (!window.supabase) { errore = "Libreria non caricata."; return; }
     const o = (chiave) => ({ auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: chiave } });
     cl = supabase.createClient(URL_SB, CHIAVE, o("lit-sond-anon")); ad0 = ad = supabase.createClient(URL_SB, CHIAVE, o("lit-sond-admin")); pronto = true;
-    addEventListener("online", () => camp && ricarica()); document.addEventListener("visibilitychange", () => { if (!document.hidden && camp && visibile()) ricarica(); });
+    addEventListener("online", () => { if (camp) ricarica(); else sveglia(); }); document.addEventListener("visibilitychange", () => { if (document.hidden) return; if (camp && visibile()) ricarica(); else if (!camp) sveglia(); });
   }
   async function sessione() {
     crea(); if (errore) return;
@@ -36,9 +38,27 @@ const Sond = (() => {
     else { const a = await ad0.auth.getSession(); if (a.data.session && (await ad0.rpc("is_admin")).data === true) { ad = ad0; admin = true; } }
   }
   async function avvia() {
-    try { await sessione(); } catch (e) { errore = "Accesso anonimo non riuscito: " + traduci(e); }
-    let salvato = ""; try { salvato = localStorage.getItem("lit-sond-codice") || ""; } catch { /* ok */ }
-    if (!errore && (salvato || admin)) { try { if (salvato) await apri(salvato); else await elenco(); } catch (e) { if (salvato) { try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } } } }
+    try { await sessione(); await carLista(); sottoscriviLista(); } catch (e) { errore = "Accesso anonimo non riuscito: " + traduci(e); }
+    dopo();
+  }
+  async function carLista() {
+    lista = await q(cl.from("campaigns").select("*").order("created_at", { ascending: false }));
+    const pp = await q(cl.from("participants").select("campaign_id").eq("user_id", uid)); mieiIds = new Set(pp.map(x => x.campaign_id));
+  }
+  function sottoscriviLista() {
+    if (canaleLista || !cl) return;
+    canaleLista = cl.channel("sond-lista").on("postgres_changes", { event: "*", schema: "public", table: "campaigns" }, () => { clearTimeout(timerL); timerL = setTimeout(async () => { try { await carLista(); notifica(); } catch { /* ok */ } dopo(); }, 500); });
+    canaleLista.subscribe();
+  }
+  /* avviso: sondaggio nuovo di un altro, creato negli ultimi 7 giorni, non ancora segnalato su questo telefono */
+  function notifica() {
+    const nuovi = lista.filter(c => c.creato_da !== uid && !mieiIds.has(c.id) && !visti.has(c.id) && Date.now() - new Date(c.created_at) < 7 * 864e5);
+    if (!nuovi.length) return;
+    nuovi.forEach(c => visti.add(c.id)); scrivi("lit-sond-visti", [...visti].slice(-200));
+    if (typeof toast === "function") toast((nuovi.length === 1 ? `Nuovo sondaggio: ${nuovi[0].titolo}` : `${nuovi.length} nuovi sondaggi da votare`) + ". Tocca per aprire.", () => { tab = "altro"; sub = "sondaggio"; ui.v = "proposte"; camp = null; scrollTo(0, 0); render(); });
+  }
+  async function sveglia() {
+    try { crea(); if (errore) return; await sessione(); await carLista(); sottoscriviLista(); notifica(); } catch { /* ok */ }
     dopo();
   }
   async function elenco() { let r = k().from("campaigns").select("*").order("created_at", { ascending: false }); if (!admin) r = r.eq("creato_da", uid); tutte = await q(r); }
@@ -47,7 +67,7 @@ const Sond = (() => {
     if (!c) throw new Error("Sondaggio non trovato o accesso non consentito.");
     camp = c; me = await q(cl.from("participants").select("*").eq("campaign_id", c.id).eq("user_id", uid).maybeSingle());
     if (!admin) { try { localStorage.setItem("lit-sond-codice", c.codice); } catch { /* ok */ } }
-    await ricarica(); sottoscrivi();
+    await ricarica(); sottoscrivi(); try { await carLista(); } catch { /* ok */ }
   }
   async function ricarica() {
     if (!camp) return;
@@ -94,12 +114,17 @@ const Sond = (() => {
       ${gest() && !me ? `<form class="f" data-form="s_partecipa"><label class="mute" for="s-pn">Vuoi partecipare anche tu? Scegli il tuo nome</label><input id="s-pn" name="nome" maxlength="30" required><button class="btn" type="submit">Partecipa</button></form>` : ""}</div>`;
   };
   function vistaEntra() {
-    return `<div class="scheda"><div class="nome">Entra in un sondaggio</div><div class="desc">Scrivi il codice ricevuto e scegli il nome con cui compari. Il telefono si ricorda di te.</div>
-      <form class="f" data-form="s_entra"><label class="mute" for="s-cod">Codice del sondaggio</label><input id="s-cod" name="cod" maxlength="12" autocapitalize="characters" autocomplete="off" required value="${esc(ui.cod)}">
-      <label class="mute" for="s-nome">Il tuo nome</label><input id="s-nome" name="nome" maxlength="30" required autocomplete="nickname">
-      <label class="mute" for="s-inv">Codice di invito (solo se richiesto)</label><input id="s-inv" name="inv" maxlength="12" autocapitalize="characters" autocomplete="off">
-      <button class="btn pri" type="submit">Entra</button></form></div>
-      <div class="riga"><button class="btn" data-az="s_miei">Crea o gestisci i miei sondaggi</button></div>`;
+    const mio = c => mieiIds.has(c.id) || c.creato_da === uid, nomeS = leggi("lit-sond-nome", "");
+    const stato = c => `Fase ${fase(c)}: ${FASI[fase(c)]}`;
+    const mie = lista.filter(mio), altre = lista.filter(c => !mio(c));
+    const unisciForm = c => `<form class="f" data-form="s_unisci"><input type="hidden" name="cod" value="${esc(c.codice)}"><label class="mute" for="u-n">Il tuo nome nel sondaggio</label><input id="u-n" name="nome" maxlength="30" required value="${esc(nomeS)}" autocomplete="nickname">
+      ${c.richiede_invito ? `<label class="mute" for="u-i">Codice di invito</label><input id="u-i" name="inv" maxlength="12" autocapitalize="characters" autocomplete="off">` : ""}<button class="btn pri" type="submit">Partecipa</button></form>`;
+    return `<div class="scheda"><div class="nome">I tuoi sondaggi</div>${mie.length ? mie.map(c => `<div class="riga" style="justify-content:space-between"><span>${esc(c.titolo)} <span class="mute">${stato(c)}${c.creato_da === uid ? ", creato da te" : ""}</span></span><button class="btn" data-az="s_apri" data-v="${esc(c.codice)}">Apri</button></div>`).join("") : `<div class="desc">Non partecipi ancora a nessun sondaggio.</div>`}</div>
+      <div class="scheda"><div class="nome">Sondaggi del gruppo</div>${altre.length ? altre.map(c => `<div class="riga" style="justify-content:space-between"><span>${esc(c.titolo)} <span class="mute">${stato(c)}</span></span><button class="btn pri" data-az="s_unisciti" data-v="${esc(c.codice)}">Partecipa</button></div>${ui.unisci === c.codice ? unisciForm(c) : ""}`).join("") : `<div class="desc">Nessun altro sondaggio per ora. Quando qualcuno ne crea uno, compare qui e ricevi un avviso.</div>`}</div>
+      <div class="riga"><button class="btn pri" data-az="s_miei">Crea un nuovo sondaggio</button></div>
+      <details class="scheda"><summary>Ho un codice di un sondaggio privato</summary><form class="f" data-form="s_entra"><label class="mute" for="s-cod">Codice del sondaggio</label><input id="s-cod" name="cod" maxlength="12" autocapitalize="characters" autocomplete="off" required value="${esc(ui.cod)}">
+      <label class="mute" for="s-nome">Il tuo nome</label><input id="s-nome" name="nome" maxlength="30" required autocomplete="nickname" value="${esc(nomeS)}">
+      <label class="mute" for="s-inv">Codice di invito (solo se richiesto)</label><input id="s-inv" name="inv" maxlength="12" autocapitalize="characters" autocomplete="off"><button class="btn pri" type="submit">Entra</button></form></details>`;
   }
   function vistaLogin() {
     return `<div class="scheda"><div class="nome">Accesso amministratore</div><div class="desc">Email e password dell'account amministratore. Restano solo in questa sessione del browser.</div>
@@ -169,6 +194,7 @@ const Sond = (() => {
       <form class="f" data-form="s_scad"><label class="mute" for="a-v">Inizio votazione automatico</label><input id="a-v" name="vi" type="datetime-local" value="${dt(camp.votazione_inizio)}">
       <label class="mute" for="a-c">Chiusura automatica</label><input id="a-c" name="ch" type="datetime-local" value="${dt(camp.chiusura)}">
       <label class="riga"><input type="checkbox" name="cv"${camp.commenti_in_votazione ? " checked" : ""}> Commenti aperti durante la votazione</label>
+      <label class="riga"><input type="checkbox" name="pub"${camp.pubblico ? " checked" : ""}> Visibile a tutto il gruppo, con avviso nell'app</label>
       <label class="riga"><input type="checkbox" name="inv"${camp.richiede_invito ? " checked" : ""}> Serve un codice di invito personale</label>
       <button class="btn pri" type="submit">Salva impostazioni</button></form></div>
       <div class="scheda"><div class="nome">Partecipanti (${PA.length})</div>${PA.map(x => `<div class="riga" style="justify-content:space-between"><span>${esc(x.nome)}${x.revocato ? ' <span class="et">revocato</span>' : ""}</span><span><button class="btn" data-az="s_revoca" data-v="${x.id}|${x.revocato ? 0 : 1}">${x.revocato ? "Ripristina" : "Revoca"}</button></span></div>`).join("") || `<div class="desc">Nessuno.</div>`}
@@ -212,13 +238,14 @@ const Sond = (() => {
   const val = (f, n) => String(f.get(n) || "").trim();
   const num = v => (v === "" ? null : Math.max(1, Math.min(31, parseInt(v, 10) || 1)));
   Object.assign(azioni, {
-    s_vista(v) { ui.v = v; render(); }, s_cat(v) { ui.cat = v; render(); }, s_ord(v) { ui.ord = v; render(); },
+    s_vista(v) { ui.v = v; render(); },
+    async s_unisciti(v) { const nome = leggi("lit-sond-nome", ""); if (!nome) { ui.unisci = ui.unisci === v ? "" : v; render(); return; } const c = lista.find(x => x.codice === v); if (c && c.richiede_invito) { ui.unisci = v; render(); return; } try { await q(cl.rpc("entra", { p_codice: v, p_nome: nome })); await apri(v); ui.v = "proposte"; dire("Benvenuto nel sondaggio."); } catch (e) { ui.unisci = v; dire(traduci(e), "avv"); } render(); }, s_cat(v) { ui.cat = v; render(); }, s_ord(v) { ui.ord = v; render(); },
     s_dettaglio(v) { ui.id = v; ui.v = "dettaglio"; scrollTo(0, 0); render(); }, s_indietro() { ui.v = "proposte"; render(); },
     s_annulla() { ui.modif = null; ui.nuova = false; render(); }, s_modifica(v) { ui.modif = v; ui.v = "proposte"; scrollTo(0, 0); render(); },
     s_login() { ui.v = "login"; render(); }, async s_miei() { fuori(); camp = null; ui.v = "miei"; try { crea(); if (!(await cl.auth.getSession()).data.session) await q(cl.auth.signInAnonymously()); uid = (await cl.auth.getUser()).data.user.id; await elenco(); } catch (e) { dire(traduci(e), "avv"); } render(); },
-    async s_chiudi() { fuori(); camp = null; ui.v = "proposte"; errore = ""; try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } if (admin) { try { await elenco(); } catch { /* ok */ } } render(); },
+    async s_chiudi() { fuori(); camp = null; ui.v = "proposte"; errore = ""; try { await carLista(); } catch { /* ok */ } try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } if (admin) { try { await elenco(); } catch { /* ok */ } } render(); },
     async s_esci() {
-      fuori(); if (admin) { try { if (ad === cl) await cl.rpc("lascia_admin"); else await ad.auth.signOut(); } catch { /* ok */ } ad = ad0; admin = false; }
+      ui.v = "proposte"; fuori(); if (admin) { try { if (ad === cl) await cl.rpc("lascia_admin"); else await ad.auth.signOut(); } catch { /* ok */ } ad = ad0; admin = false; }
       camp = null; me = null; ui.v = "proposte"; errore = ""; try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } render();
     },
     async s_apri(cod) { ui.v = "proposte"; try { await apri(cod); } catch (e) { dire(traduci(e), "avv"); } render(); },
@@ -243,8 +270,13 @@ const Sond = (() => {
     }
   });
   Object.assign(moduli, {
+    async s_unisci(f) {
+      const cod = val(f, "cod"), nome = val(f, "nome"); scrivi("lit-sond-nome", nome);
+      try { await q(cl.rpc("entra", { p_codice: cod, p_nome: nome, p_invito: val(f, "inv") || null })); ui.unisci = ""; await apri(cod); ui.v = "proposte"; dire("Benvenuto nel sondaggio."); } catch (e) { dire(traduci(e), "avv"); }
+      render();
+    },
     async s_entra(f) {
-      ui.cod = val(f, "cod").toUpperCase();
+      ui.cod = val(f, "cod").toUpperCase(); scrivi("lit-sond-nome", val(f, "nome"));
       try { crea(); if (!(await cl.auth.getSession()).data.session) await q(cl.auth.signInAnonymously());
         await q(cl.rpc("entra", { p_codice: ui.cod, p_nome: val(f, "nome"), p_invito: val(f, "inv") || null })); errore = ""; await apri(ui.cod); dire("Benvenuto nel sondaggio."); } catch (e) { dire(traduci(e), "avv"); }
       render();
@@ -264,14 +296,16 @@ const Sond = (() => {
       await esegui(async () => { if (id) await q(cl.from("proposals").update(d).eq("id", id)); else await q(cl.from("proposals").insert({ ...d, campaign_id: camp.id, participant_id: me.id })); ui.modif = null; ui.nuova = false; }, id ? "Proposta aggiornata." : "Proposta aggiunta."); render();
     },
     async s_commento(f) { await esegui(() => q(cl.from("comments").insert({ proposal_id: val(f, "pid"), participant_id: me.id, testo: val(f, "testo") }))); render(); },
-    async s_scad(f) { await esegui(() => q(k().from("campaigns").update({ votazione_inizio: f.get("vi") ? new Date(f.get("vi")).toISOString() : null, chiusura: f.get("ch") ? new Date(f.get("ch")).toISOString() : null, commenti_in_votazione: f.get("cv") === "on", richiede_invito: f.get("inv") === "on" }).eq("id", camp.id)), "Impostazioni salvate."); render(); },
+    async s_scad(f) { await esegui(() => q(k().from("campaigns").update({ votazione_inizio: f.get("vi") ? new Date(f.get("vi")).toISOString() : null, chiusura: f.get("ch") ? new Date(f.get("ch")).toISOString() : null, commenti_in_votazione: f.get("cv") === "on", richiede_invito: f.get("inv") === "on", pubblico: f.get("pub") === "on" }).eq("id", camp.id)), "Impostazioni salvate."); render(); },
     async s_titolo(f) { await esegui(() => q(k().from("campaigns").update({ titolo: val(f, "titolo"), descrizione: val(f, "desc") }).eq("id", camp.id)), "Salvato."); render(); },
     async s_sel(f) { await esegui(() => q(k().from("proposals").update({ selezionato: f.get("sel") === "on", giorno: num(val(f, "giorno")), zona: val(f, "zona"), note_org: val(f, "note") }).eq("id", val(f, "id"))), "Itinerario aggiornato."); render(); }
   });
   /* link #s=CODICE: apre la schermata di ingresso con il codice già scritto */
   function daLink() { const m = /^#s=([A-Za-z0-9]{4,12})$/.exec(location.hash); if (!m) return false; ui.cod = m[1].toUpperCase(); try { history.replaceState(null, "", location.pathname + location.search); } catch { /* ok */ } tab = "altro"; sub = "sondaggio"; return true; }
-  return { vista, fuori, ripresa, daLink, stato: () => ({ pronto, admin, camp: !!camp, errore }) };
+  return { vista, fuori, ripresa, daLink, sveglia, stato: () => ({ pronto, admin, camp: !!camp, errore }) };
 })();
 
 if (Sond.daLink()) render();
-addEventListener("hashchange", () => { if (Sond.daLink()) render(); });
+setTimeout(() => Sond.sveglia(), 1800);
+addEventListener("hashchange", () => { if (Sond.daLink()) render();
+setTimeout(() => Sond.sveglia(), 1800); });

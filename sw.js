@@ -1,5 +1,5 @@
 /* Londra in tasca (versione principale): copia salvata per l'uso senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-15";
+const VERSIONE = "lit-16";
 const FILE = ["./", "index.html", "style.css", "dati.js", "sync.js", "app.js", "sondaggio.js", "vendor/supabase.js", "fonts/Cinzel.ttf", "fonts/CinzelDecorative-Bold.ttf", "installa.js", "manifest.webmanifest",
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
 self.addEventListener("install", e => e.waitUntil(
