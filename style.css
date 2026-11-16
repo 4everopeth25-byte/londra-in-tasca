@@ -179,13 +179,13 @@ progress{width:100%;height:10px;accent-color:var(--oro);margin:6px 0}
 .installa{position:fixed;left:14px;right:14px;bottom:calc(88px + var(--sal));z-index:9;max-width:520px;margin:0 auto;display:flex;gap:10px;align-items:center;background:var(--fascia);border:2px solid var(--oro);border-radius:var(--r);padding:12px 14px}
 .installa .tx{flex:1;font-size:.875rem}.installa .tx b{display:block}.installa .tx span{color:var(--muto)}
 .calmo *,.calmo *::before,.calmo *::after{animation:none!important;transition:none!important}
-@media (prefers-reduced-motion:reduce){#neve{display:none}*{animation:none!important;transition:none!important}}
+@media (prefers-reduced-motion:reduce){html:not(.forza) #neve{display:none}html:not(.forza) *{animation:none!important;transition:none!important}}
 
 .pila>.scheda{background:transparent;border:0;border-bottom:var(--filo);border-radius:0;padding-left:2px;padding-right:2px;margin:0}
 .pila>.scheda:last-child{border-bottom:0}
 .offline{padding:calc(8px + var(--sat)) 14px 8px;background:var(--rosso);color:#f4ecd8;font-weight:600;font-size:.875rem}
 .toast-x svg{display:block;margin:auto}
-@media (prefers-reduced-motion:reduce){.lampada{animation:none!important}}
+@media (prefers-reduced-motion:reduce){html:not(.forza) .lampada{animation:none!important}}
 
 /* indicatore che scorre tra le voci della barra */
 .dock .ind{position:absolute;top:-2px;left:6px;width:calc((100% - 12px) / 5);height:4px;pointer-events:none;transition:transform .34s var(--ease)}
@@ -250,12 +250,12 @@ html[data-dir="indietro"]::view-transition-new(vista){animation:entra-sx .3s var
 .popup-titolo{margin:0 0 10px;font:700 2rem/1.15 "Cinzel Decorative",Cinzel,Georgia,serif;letter-spacing:.03em;color:var(--oro-t);text-transform:none}
 .popup-corpo p{margin:0 0 16px}
 .popup .riga{justify-content:center}
-@media (prefers-reduced-motion:reduce){.finestra.aperta .porta{transform:none;opacity:0}.finestra .porta{animation:none!important}.dock .ind{transition:none}}
+@media (prefers-reduced-motion:reduce){html:not(.forza) .finestra.aperta .porta{transform:none;opacity:0}html:not(.forza) .finestra .porta{animation:none!important}html:not(.forza) .dock .ind{transition:none}}
 .calmo .finestra.aperta .porta{transform:none;opacity:0}
 
 .finestra.no{animation:no .32s var(--ease)}
 @keyframes no{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-@media (prefers-reduced-motion:reduce){.luci.accendi .lampada{opacity:1}}
+@media (prefers-reduced-motion:reduce){html:not(.forza) .luci.accendi .lampada{opacity:1}}
 .calmo .luci.accendi .lampada{opacity:1}
 .popup{overscroll-behavior:contain}
 html:has(dialog[open]){overflow:hidden}

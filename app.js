@@ -13,7 +13,7 @@ const STATI = ["in votazione", "approvata", "respinta", "fatta"];
 const riduci = matchMedia("(prefers-reduced-motion: reduce)");
 const tic = ms => { try { if (navigator.vibrate) navigator.vibrate(ms || 10); } catch { /* non disponibile */ } };
 const ORD_TAB = ["oggi", "viaggio", "idee", "spese", "altro"];
-const calmo = () => riduci.matches || document.documentElement.classList.contains("calmo");
+const calmo = () => document.documentElement.classList.contains("calmo");
 /* transizione tra schermate: View Transitions con direzione, ripiego in CSS dove non esistono */
 let vtId = 0, vtTimer = 0;
 const vt = (fn, dir = 1) => {
@@ -52,7 +52,7 @@ const ICONE = {
 const ic = (n, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONE[n]}</svg>`;
 
 /* ---------- stato ---------- */
-const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", neve: true, riserv: null, migratoDa: "", finestre: {}, salutoGiorno: "", contoVisto: {}, valigiaOk: {} });
+const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", mov: "auto", riserv: null, migratoDa: "", finestre: {}, salutoGiorno: "", contoVisto: {}, valigiaOk: {} });
 const ID_OK = /^[A-Za-z0-9_-]{1,40}$/;
 const nomeOk = p => typeof p === "string" && p.trim() !== "" && p.length <= 40 && !/^(__proto__|constructor|prototype)$/.test(p);
 const mappa = (o, ok) => { const r = {}; if (o && typeof o === "object" && !Array.isArray(o)) for (const [k, v] of Object.entries(o).slice(0, 600)) if (k.length <= 80 && k !== "__proto__" && ok(v)) r[k] = v; return r; };
@@ -70,6 +70,8 @@ function carica() {
     const x = Object.assign(vuoto(), raw || {});
     for (const k of ["idee", "spese"]) x[k] = Array.isArray(x[k]) ? x[k].filter(y => y && typeof y === "object" && typeof y.id === "string" && ID_OK.test(y.id)) : [];
     pulisciMappe(x);
+    if (!["auto", "on", "off"].includes(x.mov)) x.mov = raw && raw.neve === false ? "off" : "auto";
+    delete x.neve;
     if (!Number.isFinite(+x.cambio)) x.cambio = 0;
     if (!Number.isFinite(+x.cambioQ)) x.cambioQ = 0;
     for (const k of ["me", "valP", "cambioData", "migratoDa"]) if (typeof x[k] !== "string") x[k] = "";
@@ -79,6 +81,13 @@ function carica() {
   } catch { return vuoto(); }
 }
 let S = carica(), salvaAvvisato = false;
+/* movimento: «Automatico» segue il telefono (su Android «Rimuovi animazioni» lo ferma), «Sempre attivo» lo ignora */
+const movOff = () => S.mov === "off" || (S.mov !== "on" && riduci.matches);
+function applicaMov() {
+  const r = document.documentElement; r.classList.toggle("calmo", movOff()); r.classList.toggle("forza", S.mov === "on");
+  const c = document.getElementById("neve"); if (c) c.hidden = movOff();
+}
+applicaMov();
 function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); if (typeof Sync !== "undefined") Sync.cambiato(); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
 const gruppo = () => (S.riserv && Array.isArray(S.riserv.gruppo) && S.riserv.gruppo.length ? S.riserv.gruppo : TRIP.gruppoDefault);
 const oggiIso = (n = new Date()) => `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
@@ -107,6 +116,10 @@ function mapsUrl(qs, modo) {
     (q.length > 2 ? `&waypoints=${q.slice(1, -1).map(luogo).join("%7C")}` : "") + `&travelmode=${modo}`;
 }
 const avviso = () => (msg ? `<div class="msg${msgTipo}">${esc(msg)}</div>` : "");
+const bannerSync = () => {
+  if (!SyncX.acceso()) return `<div class="msg avv" role="status"><b>Idee e sondaggi condivisi non sono attivi su questo telefono.</b> Per ora le idee restano solo qui. Tocca il link di attivazione ricevuto su WhatsApp, oppure apri Altro, Scambio.<div class="riga"><button class="btn" data-az="vai" data-v="altro:scambio">Apri Scambio</button></div></div>`;
+  const t = SyncX.testo(); return /rifiuta/.test(t) ? `<div class="msg avv" role="status">${esc(t)}</div>` : "";
+};
 const dire = (t, tipo = "") => { msg = t; msgTipo = tipo ? " " + tipo : ""; };
 
 /* ---------- tempo: tappa in corso ---------- */
@@ -204,7 +217,7 @@ function vistaOggi() {
   const dv = daVotare(), tot = saldi().tot, vs = S.valP ? statoValigia(S.valP) : null;
   const voce = (icona, t, sub, v, az, extra = "") => `<button class="voce" data-az="vai" data-v="${az}">${ic(icona, 22)}<span class="t"><b>${t}</b><span>${sub}</span></span><span class="v${extra}">${v}</span></button>`;
   return `<header class="fascia luminosa">${luci(prima)}<h1>${esc(titolo)}</h1><p>${esc(sotto)}</p></header>
-    ${inCorso}${prossima}
+    ${bannerSync()}${inCorso}${prossima}
     <h2 class="h-sez">Le finestre del viaggio</h2>
     ${avvento()}
     <h2 class="h-sez">Da decidere</h2>
@@ -313,8 +326,8 @@ function vistaIdee() {
   const passa = i => (filtroG == null || +i.giorno === +filtroG) && (filtroC == null || catOk(IDEE_CAT, i.cat) === filtroC) && (filtroS == null || (filtroS === "mie" ? daVotareIdea(i) : +i.stato === +filtroS));
   const lista = vivi(S.idee).filter(passa).sort((a, b) => (ordine === "voti" ? punti(b) - punti(a) : 0) || b.ts - a.ts).map(schedaIdea).join("");
   const ed = edit && edit.k === "idee" ? S.idee.find(x => x.id === edit.id && !x.del) : null, attivi = filtroG != null;
-  return `<h1 class="vt">${dv > 0 ? `${dv} ${dv === 1 ? "idea" : "idee"} da votare` : "Idee"}</h1>${avviso()}
-    <p class="mute">Ogni idea è un sondaggio: votano i quattro adulti e vince la maggioranza. Le idee e i voti si scambiano da Altro.</p>
+  return `<h1 class="vt">${dv > 0 ? `${dv} ${dv === 1 ? "idea" : "idee"} da votare` : "Idee"}</h1>${avviso()}${bannerSync()}
+    <p class="mute">Ogni idea è un sondaggio: votano i quattro adulti e vince la maggioranza. Con la sincronizzazione attiva, idee e voti arrivano da soli su tutti i telefoni.</p>
     ${S.me ? "" : `<div class="scheda"><label class="mute" for="chisei">Chi sei? Serve per firmare idee e voti.</label><select id="chisei" data-chg="me"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option>${esc(p)}</option>`).join("")}</select></div>`}
     <details class="scheda nuova"${ed || bozza ? " open" : ""}><summary>Nuova idea</summary>${formIdea(ed || bozza || {})}</details>
     <div class="chips" role="group" aria-label="Filtra per stato">${stati}</div>
@@ -425,8 +438,10 @@ function vistaScambio() {
   const ps = gruppo();
   return `<div class="scheda"><div class="nome">Chi sei?</div><select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
     <div class="scheda"><div class="nome">Sincronizzazione automatica</div><div class="desc" id="sync-stato">${esc(SyncX.testo())}</div>
-    <div class="desc">Idee, voti e spese di tutti i telefoni del gruppo si aggiornano da soli quando apri l'app.</div>
-    ${SyncX.acceso() ? `<div class="riga"><button class="btn" data-az="syncOra">Sincronizza ora</button></div>` : ""}</div>
+    ${SyncX.acceso()
+      ? `<div class="desc">Idee, voti e spese di tutti i telefoni si aggiornano da soli quando apri l'app, e ogni 25 secondi finché è aperta.</div><div class="riga"><button class="btn" data-az="syncOra">Sincronizza ora</button></div>
+         <div class="desc" style="margin-top:12px"><b>Attivare un altro telefono:</b> invia questo link, basta toccarlo.</div><div class="riga"><button class="btn pri" data-az="invita">Invia il link su WhatsApp</button><button class="btn" data-az="copiaInvito">${ic("copy", 18)}Copia il link</button></div>`
+      : `<div class="desc"><b>Come attivarla:</b> tocca il link di attivazione ricevuto su WhatsApp. Se non si apre nell'app, copialo e incollalo qui sotto in «Ricevi», poi premi «Importa il testo». In alternativa importa il file dei dati riservati.</div>`}</div>
     <div class="scheda"><div class="nome">Invia le tue idee, i voti e le spese</div><div class="desc">Il modo più semplice: manda il messaggio su WhatsApp. Chi lo riceve lo incolla qui sotto.</div>
     <div class="riga"><button class="btn pri" data-az="whatsapp">Invia su WhatsApp</button><button class="btn" data-az="copiaCodice">${ic("copy", 18)}Copia il testo</button></div>
     <div class="desc" style="margin-top:10px">In alternativa un file:</div><div class="riga"><button class="btn" data-az="condividi">Condividi il file</button><button class="btn" data-az="scarica">Scarica</button></div></div>
@@ -434,16 +449,17 @@ function vistaScambio() {
     <label class="mute" for="incolla" style="margin-top:10px">Messaggio ricevuto</label><textarea id="incolla" rows="3" placeholder="Incolla qui il messaggio"></textarea>
     <div class="riga"><button class="btn pri" data-az="importaTesto">Importa il testo</button></div>
     <div class="riga"><input type="file" id="file" accept="application/json,.json" multiple data-chg="importa" aria-label="Scegli un file da importare"></div></div>
-    <div class="scheda"><div class="nome">Dati riservati</div><div class="desc">${S.riserv ? "Importati: codici e nomi sono visibili in Viaggio, Prenotazioni." : "Non importati."}</div>
+    <div class="scheda"><div class="nome">Dati riservati</div><div class="desc">${S.riserv && (S.riserv.voli || S.riserv.idalia || S.riserv.alloggio) ? "Importati: codici e nomi sono visibili in Viaggio, Prenotazioni." : S.riserv ? "Non importati: è attiva solo la sincronizzazione. Codici e nomi arrivano col file riservato." : "Non importati."}</div>
     ${S.riserv ? `<div class="riga"><button class="btn rosso" data-az="togliRiserv">Rimuovi dal telefono</button></div>` : ""}</div>`;
 }
 function vistaSistema() {
-  return `<div class="scheda"><div class="nome">Uso senza rete</div><div class="desc" id="stato-offline">Controllo in corso.</div></div>
+  return `<div class="scheda"><div class="nome">Uso senza rete</div><div class="desc" id="stato-offline">Controllo in corso.</div><div class="mute piccolo" id="ver-app"></div></div>
     <div class="scheda"><div class="nome">Backup completo</div><div class="desc">Salva tutto ciò che è su questo telefono: idee, voti, spese, note, valigia e cambio. I dati riservati non sono inclusi.</div>
     <div class="riga"><button class="btn pri" data-az="backup">Esporta il backup</button></div>
     <div class="riga"><input type="file" id="ripristino" accept="application/json,.json" data-chg="ripristina" aria-label="Scegli un backup da ripristinare"></div></div>
-    <div class="scheda"><div class="nome">Neve e luci animate</div><div class="desc">Animazioni decorative di sfondo.</div>
-    <div class="riga"><button class="btn" data-az="neve" aria-pressed="${S.neve !== false}">Neve e luci animate</button></div></div>
+    <div class="scheda"><div class="nome">Movimento e neve</div><div class="desc">${riduci.matches ? "Questo telefono chiede di ridurre le animazioni (su Android: Impostazioni, Accessibilità, «Rimuovi animazioni»; il nome cambia da marca a marca). In Automatico l'app resta ferma. Scegli «Sempre attivo» per vedere comunque transizioni, neve, luci e popup." : "Transizioni, neve, luci e popup. In Automatico seguono le impostazioni del telefono."}</div>
+    <div class="chips avvolgi" role="group" aria-label="Movimento">${[["auto", "Automatico"], ["on", "Sempre attivo"], ["off", "Spento"]].map(([v, l]) => `<button class="chip" data-az="mov" data-v="${v}" aria-pressed="${S.mov === v}">${l}</button>`).join("")}</div>
+    <div class="desc" style="margin-top:8px">Adesso il movimento è ${movOff() ? "spento" : "attivo"}.</div></div>
     <div class="scheda"><div class="nome">Versione 4</div><div class="desc">Unisce le funzioni della versione 2 e della 3 con la nuova grafica. ${S.migratoDa ? "I dati della versione precedente sono stati copiati qui al primo avvio, che restano com'erano nell'altra: da ora le versioni non si aggiornano a vicenda." : "Questa versione tiene i suoi dati per conto proprio."}</div></div>
     <p class="mute piccolo">Idee e spese: ${vivi(S.idee).length} e ${vivi(S.spese).length}, salvate solo su questo telefono.</p>`;
 }
@@ -561,6 +577,7 @@ async function statoOffline() {
     if (!("caches" in window) || !navigator.serviceWorker) throw new Error("no");
     const chiavi = (await caches.keys()).filter(k => k.startsWith("lit-"));
     const n = chiavi.length ? (await (await caches.open(chiavi[0])).keys()).length : 0;
+    const ver = $("#ver-app"); if (ver && chiavi.length) ver.textContent = "Versione dell'app su questo telefono: " + Math.max(...chiavi.map(k => +k.slice(4) || 0)) + ". Se è più bassa dell'ultima annunciata, apri l'app con la rete attiva e tocca «App aggiornata».";
     el.textContent = n >= 5 ? `Pronta: ${n} file salvati nel telefono, l'app si apre anche senza rete.` : "Non ancora pronta: apri l'app una volta con la rete attiva.";
   } catch { el.textContent = "Questo browser non salva l'app per l'uso senza rete."; }
 }
@@ -598,6 +615,25 @@ function unisci(k, x) {
   if (k === "idee") { const v = unisciVoti(l.voti, y.voti); if (JSON.stringify(v) !== JSON.stringify(l.voti || {})) { l.voti = v; return true; } }
   return false;
 }
+const aB64u = t => aB64(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
+const daB64u = t => daB64(t.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - t.length % 4) % 4));
+const linkAttiva = () => { const c = S.riserv && S.riserv.sync; return c ? location.origin + location.pathname.replace(/[^/]*$/, "") + "#attiva=" + aB64u(JSON.stringify({ u: c.url, c: c.codice })) : ""; };
+/* attiva la sincronizzazione da un link ricevuto su WhatsApp (o incollato): niente file da importare */
+function attivaToken(tok) {
+  let c = null;
+  try { const j = JSON.parse(daB64u(tok)); c = pulisciRiserv({ sync: { url: j.u, codice: j.c } }).sync || null; } catch { c = null; }
+  if (!c) { dire("Il link di attivazione non è valido o è tagliato: chiedi di inviartelo di nuovo.", "avv"); return false; }
+  const att = S.riserv && S.riserv.sync;
+  if (att && (att.url !== c.url || att.codice !== c.codice) && !confirm("Questo telefono usa già un'altra sincronizzazione. Sostituirla?")) return false;
+  S.riserv = Object.assign(S.riserv || { riservati: true }, { sync: c }); salva();
+  dire("Sincronizzazione attivata. Scegli il tuo nome in «Chi sei?»: da ora idee e voti arrivano da soli."); tab = "idee";
+  SyncX.start(); return true;
+}
+function attivaDaLink() {
+  const m = /^#attiva=([A-Za-z0-9_-]+)$/.exec(location.hash); if (!m) return false;
+  try { history.replaceState(null, "", location.pathname + location.search); } catch { /* ok */ }
+  attivaToken(m[1]); return true;
+}
 function pulisciRiserv(j) {
   const s = (v, n = 60) => (typeof v === "string" ? v.slice(0, n) : ""), o = { riservati: true }, gr = nomi(j.gruppo);
   if (gr.length) o.gruppo = gr;
@@ -611,13 +647,13 @@ function pulisciRiserv(j) {
 function ripristina(j) {
   const d = j && j.dati; if (!d || typeof d !== "object") return false;
   try { localStorage.setItem("lit4-prima-ripristino", JSON.stringify(S)); } catch { /* ok */ }
-  const n = vuoto(); n.riserv = S.riserv; n.migratoDa = S.migratoDa; n.neve = d.neve !== false;
+  const n = vuoto(); n.riserv = S.riserv; n.migratoDa = S.migratoDa; n.mov = ["auto", "on", "off"].includes(d.mov) ? d.mov : (d.neve === false ? "off" : "auto");
   n.me = gruppo().includes(S.me) ? S.me : ""; n.valP = nomeOk(d.valP) ? d.valP : "";
   for (const k of ["fatti", "note", "val", "profili", "finestre", "contoVisto", "valigiaOk"]) n[k] = d[k];
   n.salutoGiorno = typeof d.salutoGiorno === "string" ? d.salutoGiorno : "";
   pulisciMappe(n);
   n.cambio = Number(d.cambio) > 0 ? Number(d.cambio) : 0; n.cambioQ = tsOk(d.cambioQ); n.cambioData = str(d.cambioData, 10);
-  S = n; for (const k of ["idee", "spese"]) for (const x of (Array.isArray(d[k]) ? d[k] : [])) unisci(k, x);
+  S = n; applicaMov(); for (const k of ["idee", "spese"]) for (const x of (Array.isArray(d[k]) ? d[k] : [])) unisci(k, x);
   return true;
 }
 function rimappaMe() { if (S.me && !gruppo().includes(S.me)) { const t = gruppo().find(p => primo(p) === primo(S.me)); S.me = t || ""; } }
@@ -644,6 +680,8 @@ async function importaFile(files, consentiBackup) {
 }
 function importaTesto(t) {
   const n = { idee: 0, spese: 0, riserv: false, backup: false }; let err = 0;
+  const a = /#attiva=([A-Za-z0-9_-]+)/.exec(t);
+  if (a) { attivaToken(a[1]); salva(); render(); return; }
   const b = /LIT3B:([A-Za-z0-9+/=]+)/.exec(t), m = /LIT1:([A-Za-z0-9+/=]+)/.exec(t);
   try {
     if (b) { if (confirm("Il backup sostituisce idee, spese, note e valigia di questo telefono. Continuare?")) { if (!applica(JSON.parse(daB64(b[1])), n, true)) err++; } else return; }
@@ -735,7 +773,7 @@ const azioni = {
   },
   me(v) { S.me = v; salva(); msg = ""; render(); avvisaVoti(); },
   reset() { if (confirm("Cancellare idee, spese, note e dati riservati da questo telefono?")) { S = vuoto(); salva(); msg = ""; render(); } },
-  neve() { S.neve = S.neve === false; salva(); const c = $("#neve"); if (c) c.hidden = S.neve === false; document.documentElement.classList.toggle("calmo", S.neve === false); render(); },
+  mov(v) { if (!["auto", "on", "off"].includes(v)) return; S.mov = v; salva(); applicaMov(); render(); },
   valP(v) { S.valP = v; salva(); render(); },
   profilo(v) { if (S.valP) { if (v) S.profili[S.valP] = v; else delete S.profili[S.valP]; salva(); render(); } },
   spuntaV(v) { if (!S.valP) return; const m = (S.val[S.valP] = S.val[S.valP] || {}); m[v] = !m[v]; tic(8); salva(); render(); valigiaPronta(); },
@@ -757,6 +795,8 @@ const azioni = {
   togliRiserv() { if (confirm("Rimuovere i dati riservati da questo telefono?")) { S.riserv = null; salva(); render(); } },
   async copiaCodice() { dire((await copia(messaggio())) ? "Testo copiato: incollalo in un messaggio." : "Copia non riuscita: usa «Condividi il file».", ""); render(); },
   async copiaSpese() { dire((await copia(riepilogoSpese())) ? "Riepilogo copiato." : "Copia non riuscita."); render(); },
+  invita() { const l = linkAttiva(); if (!l) return; window.open("https://wa.me/?text=" + encodeURIComponent("Londra in tasca: tocca il link per attivare idee e sondaggi condivisi su questo telefono, poi scegli il tuo nome. Il link è riservato al gruppo, non inoltrarlo.\n" + l), "_blank", "noopener"); },
+  async copiaInvito() { dire((await copia(linkAttiva())) ? "Link copiato: incollalo in un messaggio al gruppo." : "Copia non riuscita.", ""); render(); },
   async whatsapp() {
     const t = messaggio(), url = "https://wa.me/?text=" + encodeURIComponent(t);
     if (url.length > 3500) { dire((await copia(t)) ? "Messaggio lungo, copiato: aprilo in WhatsApp e incolla." : "Messaggio troppo lungo: usa «Condividi il file».", "avv"); render(); return; }
@@ -824,6 +864,7 @@ document.addEventListener("touchend", e => {
 }, { passive: true });
 
 /* ---------- condivisione da altre app, offline, aggiornamenti, neve ---------- */
+attivaDaLink(); addEventListener("hashchange", () => { if (attivaDaLink()) render(); });
 (function daCondivisione() {
   const p = new URLSearchParams(location.search);
   if (!(p.has("url") || p.has("text") || p.has("title"))) return;
@@ -842,8 +883,7 @@ if ("serviceWorker" in navigator) {
 }
 (function neve() {
   const c = $("#neve"); if (!c) return;
-  const spenta = () => riduci.matches || S.neve === false;
-  c.hidden = spenta(); riduci.addEventListener("change", () => { c.hidden = spenta(); });
+  const spenta = calmo;
   const x = c.getContext("2d"); let w, h; const fi = [];
   const mis = () => { w = c.width = innerWidth; h = c.height = innerHeight; };
   mis(); addEventListener("resize", mis);
@@ -863,7 +903,7 @@ if ("serviceWorker" in navigator) {
   })();
 })();
 
-document.documentElement.classList.toggle("calmo", S.neve === false);
+applicaMov(); riduci.addEventListener("change", () => { applicaMov(); render(); });
 const aggiornaRete = () => { const o = $("#offline"); if (o) o.hidden = navigator.onLine; };
 addEventListener("online", aggiornaRete); addEventListener("offline", aggiornaRete); aggiornaRete();
 render(); cascata(); avvisaVoti(); SyncX.start(); setTimeout(saluti, 900);
