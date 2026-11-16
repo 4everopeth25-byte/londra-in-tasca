@@ -361,6 +361,9 @@ const Sond = (() => {
       ${me && !chiusoG ? `<form class="f" data-form="s_commento"><input type="hidden" name="pid" value="${p.id}"><label class="mute" for="s-co">Scrivi un commento</label><input id="s-co" name="testo" required maxlength="500"><button class="btn pri" type="submit">Pubblica</button></form>` : ""}`;
   }
   function vistaIdee() {
+    try { return vistaIdeeBase(); } catch (e) { return `<h1 class="vt">Idee</h1><div class="msg avv"><b>Errore nella pagina.</b> ${esc(e && e.message)}</div><div class="riga"><button class="btn" data-az="i_riprova">Riprova</button></div>`; }
+  }
+  function vistaIdeeBase() {
     if (!caricato) { if (!avviando && !errore) sveglia(); return `${titoloIdee()}<div class="scheda"><div class="desc">Collegamento in corso.</div></div>`; }
     if (!camp) return errore ? `${titoloIdee()}<div class="msg avv">${esc(errore)}</div><div class="riga"><button class="btn" data-az="i_riprova">Riprova</button></div>` : (gruppoVis ? sceltaNome() : `${titoloIdee()}<div class="msg avv">Gruppo non trovato.</div>`);
     if (I.det) return dettaglioI();
@@ -382,8 +385,14 @@ const Sond = (() => {
     i_det(v) { I.det = v; scrollTo(0, 0); render(); }, i_indietro() { I.det = null; render(); }, i_annulla() { I.modif = null; I.nuova = false; render(); },
     i_modifica(v) { I.modif = v; I.det = null; scrollTo(0, 0); render(); }, i_riprova() { errore = ""; caricato = false; render(); },
     async i_sono(nome) {
-      try { await q(cl.rpc("entra", { p_codice: GRUPPO, p_nome: nome })); await apri(GRUPPO); dire(`Benvenuto, ${nome}.`); } catch (e) { dire(traduci(e), "avv"); }
-      render();
+      if (avviando) return; avviando = true; dire("Accesso in corso…"); render();
+      const lento = new Promise((_, no) => setTimeout(() => no(new Error("Il collegamento è lento o si è bloccato: chiudi e riapri l'app, poi riprova.")), 15000));
+      try {
+        const id = await Promise.race([q(cl.rpc("entra", { p_codice: GRUPPO, p_nome: nome })), lento]);
+        camp = gruppoVis; me = { id, nome, user_id: uid }; errore = ""; dire(`Benvenuto, ${nome}.`); render();   /* subito, poi i dati */
+        await Promise.race([apri(GRUPPO), lento]);
+      } catch (e) { dire(traduci(e), "avv"); if (!me || !camp) { camp = null; me = null; } }
+      avviando = false; render();
     },
     i_vota(v) { const [id, n] = v.split("|"), val2 = +n, m = mioVoto(id); return esegui(async () => { if (m === val2) await q(cl.from("votes").delete().eq("proposal_id", id).eq("participant_id", me.id)); else await q(cl.from("votes").upsert({ proposal_id: id, participant_id: me.id, valore: val2 }, { onConflict: "proposal_id,participant_id" })); }); },
     i_stato(v) { const [id, n] = v.split("|"); return esegui(() => q(cl.from("proposals").update({ stato: +n }).eq("id", id))); },
