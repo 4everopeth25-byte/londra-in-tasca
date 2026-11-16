@@ -2,23 +2,42 @@
   "id": "./",
   "name": "Londra in tasca",
   "short_name": "Londra",
-  "description": "Itinerario, prenotazioni, idee e spese del viaggio a Londra, Natale 2026",
+  "description": "Itinerario, prenotazioni, idee con sondaggio, spese, valigia e cambio del viaggio a Londra, Natale 2026",
   "lang": "it",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#0d1033",
-  "theme_color": "#0d1033",
+  "background_color": "#0e3b2f",
+  "theme_color": "#0a2c23",
   "icons": [
-    { "src": "icone/icona-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icone/icona-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icone/icona-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icone/icona-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icone/icona-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icone/icona-maskable-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ],
   "share_target": {
     "action": "./",
     "method": "GET",
-    "params": { "title": "title", "text": "text", "url": "url" }
+    "params": {
+      "title": "title",
+      "text": "text",
+      "url": "url"
+    }
   },
   "prefer_related_applications": false
 }

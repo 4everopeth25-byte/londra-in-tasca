@@ -1,4 +1,6 @@
 /* Dati pubblici del viaggio. Qui NON vanno codici di prenotazione né nominativi: stanno nel file riservato, importato dall'app. */
+const IDEE_CAT = [["mangiare", "Mangiare"], ["vedere", "Vedere"], ["shopping", "Shopping"], ["divertimento", "Divertimento"], ["altro", "Altro"]];
+const SPESE_CAT = [["cibo", "Cibo"], ["trasporti", "Trasporti"], ["ingressi", "Ingressi"], ["shopping", "Shopping"], ["altro", "Altro"]];
 const ADULTI = ["uomo", "donna"];
 const TUTTI = ["uomo", "donna", "bambina"];
 const TRIP = {

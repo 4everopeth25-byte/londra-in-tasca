@@ -1,13 +1,13 @@
-/* Londra in tasca: tiene l'app in memoria per usarla senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-9";
-const FILE = ["./", "index.html", "style.css", "dati.js", "sync.js", "app.js", "installa.js", "manifest.webmanifest",
+/* Londra in tasca (versione principale): copia salvata per l'uso senza rete. Cambiare VERSIONE a ogni pubblicazione. */
+const VERSIONE = "lit-10";
+const FILE = ["./", "index.html", "style.css", "dati.js", "sync.js", "app.js", "fonts/Cinzel.ttf", "installa.js", "manifest.webmanifest",
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
 self.addEventListener("install", e => e.waitUntil(
   caches.open(VERSIONE).then(c => c.addAll(FILE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting())));
-/* elimina solo le vecchie copie di questa app (prefisso lit-), non quelle di altre app dello stesso sito */
+/* elimina solo le vecchie copie di questa app (prefisso lit-), non quelle delle sottocartelle /v3/ e /v4/ (lit3-, lit4-) */
 self.addEventListener("activate", e => e.waitUntil(
   caches.keys().then(k => Promise.all(k.filter(x => x.startsWith("lit-") && x !== VERSIONE).map(x => caches.delete(x)))).then(() => self.clients.claim())));
-/* prima la rete (con limite di 4 secondi), se manca o è lenta la copia salvata */
+/* prima la rete (limite di 4 secondi), se manca o è lenta la copia salvata */
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
   if (e.request.method !== "GET" || u.origin !== location.origin) return;

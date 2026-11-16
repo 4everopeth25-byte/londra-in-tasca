@@ -1,7 +1,7 @@
 /* Striscia di installazione: pulsante «Installa» se Chrome lo permette, istruzioni altrimenti. Si può chiudere. */
 let evento = null;
 const installata = () => matchMedia("(display-mode: standalone)").matches || navigator.standalone === true;
-const chiusa = () => { try { return sessionStorage.getItem("lit-installa-chiusa") === "1"; } catch { return false; } };
+const chiusa = () => { try { return sessionStorage.getItem("lit4-installa-chiusa") === "1"; } catch { return false; } };
 const ua = navigator.userAgent;
 const chromeVero = /Chrome\/\d+/.test(ua) && !/SamsungBrowser|HeyTap|OPR\/|EdgA|YaBrowser|; wv\)/.test(ua);
 
@@ -24,7 +24,7 @@ function striscia() {
       : `<b>Apri questa pagina in Chrome</b><span>Questo browser non installa le app web. Copia l'indirizzo e aprilo in Chrome.</span>`;
   d.innerHTML = `<div class="tx">${testo}</div>${evento ? `<button class="btn pri" id="installa-si">Installa</button>` : ""}<button class="btn tondo" id="installa-no" aria-label="Chiudi">✕</button>`;
   document.body.append(d);
-  document.getElementById("installa-no").onclick = () => { try { sessionStorage.setItem("lit-installa-chiusa", "1"); } catch { /* ok */ } d.remove(); };
+  document.getElementById("installa-no").onclick = () => { try { sessionStorage.setItem("lit4-installa-chiusa", "1"); } catch { /* ok */ } d.remove(); };
   const si = document.getElementById("installa-si");
   if (si) si.onclick = async () => { evento.prompt(); await evento.userChoice.catch(() => {}); evento = null; d.remove(); };
 }
