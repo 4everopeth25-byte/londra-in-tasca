@@ -1,6 +1,7 @@
 "use strict";
 /* Londra in tasca 3. Itinerario in dati.js; idee, spese, note e valigia nel telefono (localStorage, chiave lit3-v1).
    Al primo avvio copia i dati della versione 2 (chiave lit-v1), che resta intatta. Formato di scambio identico alla v2. */
+const SyncX = typeof Sync !== "undefined" ? Sync : { start() {}, cambiato() {}, ora: () => Promise.resolve(), testo: () => "Non disponibile.", acceso: () => false };
 const CH = "lit3-v1", CH_VECCHIO = "lit-v1";
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -72,7 +73,7 @@ function carica() {
   } catch { return vuoto(); }
 }
 let S = carica(), salvaAvvisato = false;
-function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
+function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); if (typeof Sync !== "undefined") Sync.cambiato(); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
 const gruppo = () => (S.riserv && Array.isArray(S.riserv.gruppo) && S.riserv.gruppo.length ? S.riserv.gruppo : TRIP.gruppoDefault);
 const oggiIso = (n = new Date()) => `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
 const giornoIniziale = () => { const i = TRIP.giorni.findIndex(d => d.iso === oggiIso()); return i < 0 ? 0 : i; };
@@ -380,6 +381,9 @@ const vistaFrasi = () => `<div class="scheda">${TRIP.frasi.map(([it, en]) => `<d
 function vistaScambio() {
   const ps = gruppo();
   return `<div class="scheda"><div class="nome">Chi sei?</div><select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
+    <div class="scheda"><div class="nome">Sincronizzazione automatica</div><div class="desc" id="sync-stato">${esc(SyncX.testo())}</div>
+    <div class="desc">Idee, voti e spese di tutti i telefoni del gruppo si aggiornano da soli quando apri l'app.</div>
+    ${SyncX.acceso() ? `<div class="riga"><button class="btn" data-az="syncOra">Sincronizza ora</button></div>` : ""}</div>
     <div class="scheda"><div class="nome">Invia le tue idee, i voti e le spese</div><div class="desc">Il modo più semplice: manda il messaggio su WhatsApp. Chi lo riceve lo incolla qui sotto.</div>
     <div class="riga"><button class="btn pri" data-az="whatsapp">Invia su WhatsApp</button><button class="btn" data-az="copiaCodice">${ic("copy", 18)}Copia il testo</button></div>
     <div class="desc" style="margin-top:10px">In alternativa un file:</div><div class="riga"><button class="btn" data-az="condividi">Condividi il file</button><button class="btn" data-az="scarica">Scarica</button></div></div>
@@ -482,6 +486,7 @@ function pulisciRiserv(j) {
   if (j.voli && typeof j.voli === "object") o.voli = { andata: s(j.voli.andata, 20), ritorno: s(j.voli.ritorno, 20) };
   if (j.idalia && typeof j.idalia === "object") o.idalia = { conferma: s(j.idalia.conferma, 20), nome: s(j.idalia.nome) };
   if (j.alloggio && typeof j.alloggio === "object") o.alloggio = { indirizzo: s(j.alloggio.indirizzo, 120) };
+  if (j.sync && typeof j.sync === "object" && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebasedatabase\.app|firebaseio\.com)$/.test(j.sync.url || "") && /^[A-Za-z0-9_-]{16,64}$/.test(j.sync.codice || "")) o.sync = { url: j.sync.url, codice: j.sync.codice };
   return o;
 }
 function ripristina(j) {
@@ -510,6 +515,7 @@ function esito(n, err) {
   salva();
   dire(n.backup ? "Backup ripristinato. La copia dei dati precedenti è rimasta in memoria." : `Importato: ${n.idee} idee, ${n.spese} spese${n.riserv ? ", dati riservati" : ""}${err ? `. Non validi: ${err}${n.nota ? `. ${n.nota}` : ""}` : ""}.`, err ? "avv" : "");
   render(); avvisaVoti();
+  if (n.riserv) SyncX.start();
 }
 async function importaFile(files, consentiBackup) {
   const n = { idee: 0, spese: 0, riserv: false, backup: false }; let err = 0;
@@ -596,6 +602,7 @@ const azioni = {
   fatto(v) { S.fatti[v] = !S.fatti[v]; tic(8); salva(); render(); },
   nota(_, el) { const k = el.dataset.v, t = el.value.trim(); if (t) S.note[k] = { t, ts: Date.now() }; else delete S.note[k]; salva(); },
   cambio(_, el) { const n = Number(String(el.value).replace(",", ".")); S.cambio = n > 0 ? n : 0; S.cambioQ = 0; S.cambioData = ""; salva(); render(); },
+  syncOra() { SyncX.ora().then(() => render()); },
   me(v) { S.me = v; salva(); msg = ""; render(); avvisaVoti(); },
   reset() { if (confirm("Cancellare idee, spese, note e dati riservati da questo telefono?")) { S = vuoto(); salva(); msg = ""; render(); } },
   neve() { S.neve = S.neve === false; salva(); const c = $("#neve"); if (c) c.hidden = S.neve === false; document.documentElement.classList.toggle("calmo", S.neve === false); render(); },
@@ -630,7 +637,7 @@ const azioni = {
     scaricaFile(fileDati());
   },
   async backup() {
-    const { riserv, ...resto } = S, dati = { lit3backup: true, versione: 1, esportato: Date.now(), dati: resto };
+    const { riserv, syncHash, ...resto } = S, dati = { lit3backup: true, versione: 1, esportato: Date.now(), dati: resto };
     const f = new File([JSON.stringify(dati, null, 1)], nomeFile("londra-backup"), { type: "application/json" });
     if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: "Backup di Londra in tasca" }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
     if (navigator.standalone === true) { dire((await copia("LIT3B:" + aB64(JSON.stringify(dati)))) ? "Backup copiato: incollalo in un messaggio a te stesso." : "Copia non riuscita.", "avv"); render(); return; }
@@ -726,6 +733,6 @@ if ("serviceWorker" in navigator) {
 })();
 
 document.documentElement.classList.toggle("calmo", S.neve === false);
-render(); avvisaVoti();
+render(); avvisaVoti(); SyncX.start();
 setInterval(() => { if (tab === "viaggio" && vsub === "itin") aggiornaAdesso(); else if (tab === "oggi" && !document.activeElement.closest("form,textarea,input")) render(); }, 60000);
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch { /* ok */ }

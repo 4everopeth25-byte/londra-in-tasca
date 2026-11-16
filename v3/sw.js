@@ -1,6 +1,6 @@
 /* Londra in tasca 3: copia salvata per l'uso senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit3-1";
-const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "installa.js", "manifest.webmanifest",
+const VERSIONE = "lit3-2";
+const FILE = ["./", "index.html", "style.css", "dati.js", "sync.js", "app.js", "installa.js", "manifest.webmanifest",
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
 self.addEventListener("install", e => e.waitUntil(
   caches.open(VERSIONE).then(c => c.addAll(FILE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting())));

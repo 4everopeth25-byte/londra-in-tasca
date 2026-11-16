@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self' https://api.frankfurter.dev">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data:; style-src 'self' 'unsafe-inline'; script-src 'self'; base-uri 'none'; form-action 'none'; connect-src 'self' https://api.frankfurter.dev https://*.firebasedatabase.app https://*.firebaseio.com">
 <title>Londra in tasca 3</title>
 <meta name="theme-color" content="#0a0e27">
 <meta name="color-scheme" content="dark">
@@ -23,6 +23,7 @@
 <nav class="dock" id="dock" aria-label="Sezioni"></nav>
 <div id="toast" class="toast" hidden><button type="button" class="toast-azione"></button><button type="button" class="toast-x" aria-label="Chiudi avviso">&times;</button></div>
 <script src="dati.js"></script>
+<script src="sync.js"></script>
 <script src="app.js"></script>
 <script src="installa.js"></script>
 </body>

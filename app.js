@@ -1,5 +1,6 @@
 "use strict";
 /* Londra in tasca: PWA senza librerie. Itinerario in dati.js, idee, spese e note nel telefono (localStorage). */
+const SyncX = typeof Sync !== "undefined" ? Sync : { start() {}, cambiato() {}, ora: () => Promise.resolve(), testo: () => "Non disponibile.", acceso: () => false };
 const CH = "lit-v1";
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -26,7 +27,7 @@ function carica() {
   } catch { return vuoto(); }
 }
 let salvaAvvisato = false;
-function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
+function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); if (typeof Sync !== "undefined") Sync.cambiato(); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
 const gruppo = () => (S.riserv && Array.isArray(S.riserv.gruppo) && S.riserv.gruppo.length ? S.riserv.gruppo : TRIP.gruppoDefault);
 
 const oggiIso = (n = new Date()) => `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
@@ -313,6 +314,9 @@ function vistaScambio() {
   const ps = gruppo();
   return `<div class="card"><div class="nome">Chi sei?</div>
     <select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
+    <div class="card"><div class="nome">Sincronizzazione automatica</div><div class="desc" id="sync-stato">${esc(SyncX.testo())}</div>
+    <div class="desc">Idee, voti e spese di tutti i telefoni del gruppo si aggiornano da soli quando apri l'app.</div>
+    ${SyncX.acceso() ? `<div class="riga"><button class="btn" data-az="syncOra">Sincronizza ora</button></div>` : ""}</div>
     <div class="card"><div class="nome">Invia le tue idee e spese</div>
     <div class="desc">Il modo più semplice: manda il messaggio su WhatsApp. Chi lo riceve lo incolla qui sotto.</div>
     <div class="riga"><button class="btn pri" data-az="whatsapp">Invia su WhatsApp</button><button class="btn" data-az="copiaCodice">Copia testo</button></div>
@@ -366,7 +370,7 @@ const daB64 = s => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.char
 const messaggio = () => `Londra in tasca: le mie idee e spese. Incollalo in Altro, Scambio.\nLIT1:${aB64(JSON.stringify(pacchetto()))}`;
 
 const ID_OK = /^[A-Za-z0-9_-]{1,40}$/;
-const tsOk = v => { const n = +v; return Number.isFinite(n) ? Math.min(Math.max(n, 0), Date.now() + 864e5) : 0; };
+const tsOk = v => { const n = +v; return Number.isFinite(n) ? Math.min(Math.max(n, 0), Date.now() + 3e5) : 0; };
 const str = (v, n) => String(v ?? "").slice(0, n);
 const nomi = a => (Array.isArray(a) ? a.filter(p => typeof p === "string" && p.trim()).map(p => p.slice(0, 40)).slice(0, 12) : []);
 const unisciVoti = (a, b) => {
@@ -384,10 +388,10 @@ function unisci(k, x) {
   const y = { id: x.id, ts: tsOk(x.ts), del: x.del === true };
   if (k === "spese") {
     const imp = Number(x.importo); if (!Number.isFinite(imp) || imp <= 0 || imp > 1e6) return false;
-    Object.assign(y, { desc: str(x.desc, 80), importo: imp, chi: str(x.chi, 40), tra: nomi(x.tra) });
+    Object.assign(y, { desc: str(x.desc, 80), importo: imp, chi: str(x.chi, 40), tra: nomi(x.tra), cat: str(x.cat, 20) });
   } else {
     Object.assign(y, { testo: str(x.testo, 200), link: normLink(x.link), nota: str(x.nota, 200), giorno: [0, 1, 2, 3, 4, 5].includes(+x.giorno) ? +x.giorno : 0,
-      stato: [0, 1, 2, 3].includes(+x.stato) ? +x.stato : 0, autore: str(x.autore, 40), chiusoDa: str(x.chiusoDa, 40), voti: unisciVoti({}, x.voti) });
+      stato: [0, 1, 2, 3].includes(+x.stato) ? +x.stato : 0, autore: str(x.autore, 40), chiusoDa: str(x.chiusoDa, 40), cat: str(x.cat, 20), voti: unisciVoti({}, x.voti) });
   }
   const i = S[k].findIndex(z => z.id === y.id);
   if (i < 0) { S[k].push(y); return true; }
@@ -404,6 +408,7 @@ function pulisciRiserv(j) {
   if (j.voli && typeof j.voli === "object") o.voli = { andata: s(j.voli.andata, 20), ritorno: s(j.voli.ritorno, 20) };
   if (j.idalia && typeof j.idalia === "object") o.idalia = { conferma: s(j.idalia.conferma, 20), nome: s(j.idalia.nome) };
   if (j.alloggio && typeof j.alloggio === "object") o.alloggio = { indirizzo: s(j.alloggio.indirizzo, 120) };
+  if (j.sync && typeof j.sync === "object" && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebasedatabase\.app|firebaseio\.com)$/.test(j.sync.url || "") && /^[A-Za-z0-9_-]{16,64}$/.test(j.sync.codice || "")) o.sync = { url: j.sync.url, codice: j.sync.codice };
   return o;
 }
 function applica(j, n) {
@@ -416,6 +421,7 @@ function esito(n, err) {
   salva();
   msg = `Importato: ${n.idee} idee, ${n.spese} spese${n.riserv ? ", dati riservati" : ""}${err ? `. Non validi: ${err}` : ""}.`;
   render(); avvisaVoti();
+  if (n.riserv) SyncX.start();
 }
 async function importaFile(files) {
   const n = { idee: 0, spese: 0, riserv: false }; let err = 0;
@@ -472,6 +478,7 @@ const azioni = {
   fatto(v) { S.fatti[v] = !S.fatti[v]; salva(); render(); },
   nota(_, el) { const k = el.dataset.v, t = el.value.trim(); if (t) S.note[k] = { t, ts: Date.now() }; else delete S.note[k]; salva(); },
   cambio(_, el) { const n = Number(String(el.value).replace(",", ".")); S.cambio = n > 0 ? n : 0; S.cambioQ = 0; S.cambioData = ""; salva(); render(); },
+  syncOra() { SyncX.ora().then(() => render()); },
   me(v) { S.me = v; salva(); msg = ""; render(); },
   valP(v) { S.valP = v; salva(); render(); },
   profilo(v) { if (S.valP) { if (v) S.profili[S.valP] = v; else delete S.profili[S.valP]; salva(); render(); } },
@@ -587,5 +594,5 @@ if ("serviceWorker" in navigator) {
   })();
 })();
 
-render(); avvisaVoti();
+render(); avvisaVoti(); SyncX.start();
 setInterval(() => { if (tab === "giorni") aggiornaAdesso(); }, 30000);
