@@ -7,7 +7,7 @@ const Sond = (() => {
   const CAT = [["attrazioni", "Attrazioni"], ["musei", "Musei e mostre"], ["esperienze", "Esperienze"], ["ristoranti", "Ristoranti"], ["locali", "Locali e cocktail bar"], ["shopping", "Shopping"], ["parchi", "Parchi e passeggiate"], ["altro", "Altro"]];
   const FASI = ["", "Raccolta proposte", "Votazione", "Chiuso"];
   const catNome = k => (CAT.find(c => c[0] === k) || CAT[7])[1];
-  let cl = null, ad = null, pronto = false, errore = "", admin = false, camp = null, me = null, canale = null, timer = 0, scad = 0;
+  let cl = null, ad = null, ad0 = null, uid = "", pronto = false, errore = "", admin = false, camp = null, me = null, canale = null, timer = 0, scad = 0;
   let P = [], V = [], C = [], PA = [], CL = [], tutte = [];
   const ui = { v: "proposte", id: null, cat: "", cerca: "", ord: "classifica", nuova: false, modif: null, cod: "" };
   const k = () => (admin ? ad : cl), ok = u => /^https:\/\//i.test(u || "");
@@ -23,14 +23,16 @@ const Sond = (() => {
     if (pronto || errore) return;
     if (!window.supabase) { errore = "Libreria non caricata."; return; }
     const o = (chiave) => ({ auth: { persistSession: true, autoRefreshToken: true, detectSessionInUrl: false, storageKey: chiave } });
-    cl = supabase.createClient(URL_SB, CHIAVE, o("lit-sond-anon")); ad = supabase.createClient(URL_SB, CHIAVE, o("lit-sond-admin")); pronto = true;
+    cl = supabase.createClient(URL_SB, CHIAVE, o("lit-sond-anon")); ad0 = ad = supabase.createClient(URL_SB, CHIAVE, o("lit-sond-admin")); pronto = true;
     addEventListener("online", () => camp && ricarica()); document.addEventListener("visibilitychange", () => { if (!document.hidden && camp && visibile()) ricarica(); });
   }
   async function sessione() {
     crea(); if (errore) return;
     const { data } = await cl.auth.getSession();
     if (!data.session) await q(cl.auth.signInAnonymously());
-    const a = await ad.auth.getSession(); if (a.data.session) { const r = await ad.from("admins").select("user_id").maybeSingle(); admin = !!(r.data); }
+    uid = (await cl.auth.getUser()).data.user.id;
+    if ((await cl.rpc("is_admin")).data === true) { ad = cl; admin = true; }
+    else { const a = await ad0.auth.getSession(); if (a.data.session && (await ad0.rpc("is_admin")).data === true) { ad = ad0; admin = true; } }
   }
   async function avvia() {
     try { await sessione(); } catch (e) { errore = "Accesso anonimo non riuscito: " + traduci(e); }
@@ -42,7 +44,7 @@ const Sond = (() => {
   async function apri(codice) {
     const c = await q(k().from("campaigns").select("*").eq("codice", codice.toUpperCase()).maybeSingle());
     if (!c) throw new Error("Sondaggio non trovato o accesso non consentito.");
-    camp = c; me = admin ? null : await q(cl.from("participants").select("*").eq("campaign_id", c.id).eq("user_id", (await cl.auth.getUser()).data.user.id).maybeSingle());
+    camp = c; me = await q(cl.from("participants").select("*").eq("campaign_id", c.id).eq("user_id", uid).maybeSingle());
     if (!admin) { try { localStorage.setItem("lit-sond-codice", c.codice); } catch { /* ok */ } }
     await ricarica(); sottoscrivi();
   }
@@ -57,7 +59,8 @@ const Sond = (() => {
         q(db.from("comments").select("*, proposals!inner(campaign_id)").eq("proposals.campaign_id", id).order("created_at")),
         q(db.from("classifica").select("*").eq("campaign_id", id))]);
       camp = c; P = p; PA = pa; V = v; C = co; CL = cla;
-      if (!admin) { me = pa.find(x => me && x.id === me.id) || null; if (!me || me.revocato) { camp = null; try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } errore = "Accesso a questo sondaggio non più valido."; } }
+      if (admin) me = pa.find(x => x.user_id === uid && !x.revocato) || null;
+      else { me = pa.find(x => me && x.id === me.id) || null; if (!me || me.revocato) { camp = null; try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } errore = "Accesso a questo sondaggio non più valido."; } }
       pianificaScadenza();
     } catch (e) { errore = traduci(e); }
     dopo();
@@ -85,8 +88,9 @@ const Sond = (() => {
   const intest = () => {
     const f = fase(camp);
     return `<div class="scheda acceso"><div class="nome">${esc(camp.titolo)}<span class="et" role="status">Fase ${f}: ${FASI[f]}</span></div>${camp.descrizione ? `<div class="desc">${esc(camp.descrizione)}</div>` : ""}
-      <div class="desc">${admin ? "Amministratore" : `Sei ${esc(me ? me.nome : "?")}`}. Codice <span class="codice">${esc(camp.codice)}</span>.${camp.votazione_inizio && f === 1 ? ` Votazione dal ${cella(camp.votazione_inizio)}.` : ""}${camp.chiusura && f < 3 ? ` Chiusura il ${cella(camp.chiusura)}.` : ""}</div>
-      <div class="riga"><button class="btn pri" data-az="s_invita">Invita su WhatsApp</button><button class="btn" data-az="s_copia">Copia il link</button><button class="btn" data-az="s_esci">${admin ? "Chiudi" : "Esci"}</button></div></div>`;
+      <div class="desc">${admin ? `Gestione${me ? `, partecipi come ${esc(me.nome)}` : ""}` : `Sei ${esc(me ? me.nome : "?")}`}. Codice <span class="codice">${esc(camp.codice)}</span>.${camp.votazione_inizio && f === 1 ? ` Votazione dal ${cella(camp.votazione_inizio)}.` : ""}${camp.chiusura && f < 3 ? ` Chiusura il ${cella(camp.chiusura)}.` : ""}</div>
+      <div class="riga"><button class="btn pri" data-az="s_invita">Invita su WhatsApp</button><button class="btn" data-az="s_copia">Copia il link</button><button class="btn" data-az="${admin ? "s_chiudi" : "s_esci"}">${admin ? "Altri sondaggi" : "Esci"}</button></div>
+      ${admin && !me ? `<form class="f" data-form="s_partecipa"><label class="mute" for="s-pn">Vuoi partecipare anche tu? Scegli il tuo nome</label><input id="s-pn" name="nome" maxlength="30" required><button class="btn" type="submit">Partecipa</button></form>` : ""}</div>`;
   };
   function vistaEntra() {
     return `<div class="scheda"><div class="nome">Entra in un sondaggio</div><div class="desc">Scrivi il codice ricevuto e scegli il nome con cui compari. Il telefono si ricorda di te.</div>
@@ -94,7 +98,13 @@ const Sond = (() => {
       <label class="mute" for="s-nome">Il tuo nome</label><input id="s-nome" name="nome" maxlength="30" required autocomplete="nickname">
       <label class="mute" for="s-inv">Codice di invito (solo se richiesto)</label><input id="s-inv" name="inv" maxlength="12" autocapitalize="characters" autocomplete="off">
       <button class="btn pri" type="submit">Entra</button></form></div>
-      <div class="riga"><button class="btn" data-az="s_login">Sono l'amministratore</button></div>`;
+      <div class="riga"><button class="btn" data-az="s_gestione">Gestisci i sondaggi</button></div>`;
+  }
+  function vistaGestione() {
+    return `<div class="scheda"><div class="nome">Gestione dei sondaggi</div><div class="desc">Scrivi il codice di gestione. Resta valido su questo telefono finché non lo disattivi.</div>
+      <form class="f" data-form="s_gestione"><label class="mute" for="s-g">Codice di gestione</label><input id="s-g" name="codice" type="password" autocomplete="off" required>
+      <button class="btn pri" type="submit">Attiva la gestione</button></form></div>
+      <div class="riga"><button class="btn" data-az="s_login">Accesso con email</button><button class="btn" data-az="s_chiudi">Indietro</button></div>`;
   }
   function vistaLogin() {
     return `<div class="scheda"><div class="nome">Accesso amministratore</div><div class="desc">Email e password dell'account amministratore. Restano solo in questa sessione del browser.</div>
@@ -106,11 +116,11 @@ const Sond = (() => {
     return `<div class="scheda"><div class="nome">Sondaggi</div>${tutte.length ? tutte.map(c => `<div class="riga" style="justify-content:space-between"><span>${esc(c.titolo)} <span class="mute">${esc(c.codice)} · fase ${fase(c)}</span></span><button class="btn" data-az="s_apri" data-v="${esc(c.codice)}">Apri</button></div>`).join("") : `<div class="desc">Nessun sondaggio: creane uno.</div>`}</div>
       <div class="scheda"><div class="nome">Nuovo sondaggio</div><form class="f" data-form="s_nuovo"><label class="mute" for="s-t">Titolo</label><input id="s-t" name="titolo" minlength="3" maxlength="120" required placeholder="Es. Londra Natale 2026">
       <label class="mute" for="s-d">Descrizione</label><input id="s-d" name="desc" maxlength="500"><button class="btn pri" type="submit">Crea il sondaggio</button></form></div>
-      <div class="riga"><button class="btn" data-az="s_esci">Esci dall'area amministratore</button></div>`;
+      <div class="riga"><button class="btn" data-az="s_esci">Disattiva la gestione su questo telefono</button></div>`;
   }
   function schedaProposta(p) {
     const r = riga(p.id), m = miei(p.id), f = fase(camp), n = C.filter(c => c.proposal_id === p.id).length;
-    const voto = admin ? "" : `<div class="riga" role="group" aria-label="Il tuo voto">${[[1, "Mi piace", "👍"], [-1, "Non mi piace", "👎"]].map(([v, l, e]) => `<button class="btn${m && m.valore === v ? " pri" : ""}" data-az="s_vota" data-v="${p.id}|${v}" aria-pressed="${!!m && m.valore === v}" ${f === 2 ? "" : "disabled"}>${e}<span class="vh"> ${l}</span></button>`).join("")}</div>`;
+    const voto = !me ? "" : `<div class="riga" role="group" aria-label="Il tuo voto">${[[1, "Mi piace", "👍"], [-1, "Non mi piace", "👎"]].map(([v, l, e]) => `<button class="btn${m && m.valore === v ? " pri" : ""}" data-az="s_vota" data-v="${p.id}|${v}" aria-pressed="${!!m && m.valore === v}" ${f === 2 ? "" : "disabled"}>${e}<span class="vh"> ${l}</span></button>`).join("")}</div>`;
     return `<article class="scheda"><div class="nome">${f === 3 && r.posizione ? `${r.posizione}. ` : ""}${esc(p.titolo)}<span class="et">${r.punteggio > 0 ? "+" : ""}${r.punteggio}</span></div>
       <div class="desc">${esc(catNome(p.categoria))}. Proposta da ${esc(nomeDi(p.participant_id))}. ${r.positivi} a favore, ${r.negativi} contrari. ${n} ${n === 1 ? "commento" : "commenti"}.${p.selezionato ? " Selezionata per l'itinerario." : ""}</div>
       ${voto}<div class="riga"><button class="btn" data-az="s_dettaglio" data-v="${p.id}">Dettagli e commenti</button></div></article>`;
@@ -127,7 +137,7 @@ const Sond = (() => {
       <div class="riga"><button class="btn pri" type="submit">${x.id ? "Salva le modifiche" : "Aggiungi proposta"}</button><button class="btn" type="button" data-az="s_annulla">Annulla</button></div></form>`;
   }
   function vistaProposte() {
-    const f = fase(camp), puo = !admin && f === 1;
+    const f = fase(camp), puo = !!me && f === 1;
     let l = P.filter(p => (!ui.cat || p.categoria === ui.cat) && (!ui.cerca || (p.titolo + " " + p.descrizione + " " + p.indirizzo).toLowerCase().includes(ui.cerca.toLowerCase())));
     l.sort((a, b) => ui.ord === "recenti" ? new Date(b.created_at) - new Date(a.created_at) : ui.ord === "nome" ? a.titolo.localeCompare(b.titolo, "it") : (riga(b.id).punteggio - riga(a.id).punteggio) || (riga(b.id).positivi - riga(a.id).positivi) || (riga(b.id).totale - riga(a.id).totale));
     const chips = [["", "Tutte"], ...CAT].map(([v, t]) => `<button class="chip" data-az="s_cat" data-v="${v}" aria-pressed="${ui.cat === v}">${t}</button>`).join("");
@@ -149,7 +159,7 @@ const Sond = (() => {
       ${(mia && f === 1) || admin ? `<div class="riga">${mia && f === 1 ? `<button class="btn" data-az="s_modifica" data-v="${p.id}">Modifica</button>` : ""}<button class="btn rosso" data-az="s_elimina" data-v="${p.id}">Elimina</button></div>` : ""}</div>
       <h2 class="h-sez">Commenti</h2>
       ${cm.length ? cm.map(c => `<div class="scheda"><div class="desc"><b>${esc(nomeDi(c.participant_id))}</b> <span class="mute">${cella(c.created_at)}</span></div><div>${esc(c.testo)}</div>${(me && c.participant_id === me.id && apertiC) || admin ? `<div class="riga"><button class="btn rosso" data-az="s_delcom" data-v="${c.id}">Elimina</button></div>` : ""}</div>`).join("") : `<div class="mute">Nessun commento.</div>`}
-      ${apertiC && !admin ? `<form class="f" data-form="s_commento"><input type="hidden" name="pid" value="${p.id}"><label class="mute" for="s-co">Scrivi un commento</label><input id="s-co" name="testo" required maxlength="500"><button class="btn pri" type="submit">Pubblica</button></form>` : `<div class="mute">I commenti sono chiusi.</div>`}`;
+      ${apertiC && me ? `<form class="f" data-form="s_commento"><input type="hidden" name="pid" value="${p.id}"><label class="mute" for="s-co">Scrivi un commento</label><input id="s-co" name="testo" required maxlength="500"><button class="btn pri" type="submit">Pubblica</button></form>` : `<div class="mute">I commenti sono chiusi.</div>`}`;
   }
   function vistaClassifica() {
     const l = [...CL].sort((a, b) => a.posizione - b.posizione), f = fase(camp);
@@ -182,6 +192,7 @@ const Sond = (() => {
     if (errore && !camp) corpo = `<div class="msg avv">${esc(errore)}</div>` + (admin ? vistaElenco() : vistaEntra());
     else if (!pronto) corpo = `<div class="scheda"><div class="desc">Collegamento in corso.</div></div>`;
     else if (ui.v === "login") corpo = vistaLogin();
+    else if (ui.v === "gestione" && !admin) corpo = vistaGestione();
     else if (admin && !camp) corpo = vistaElenco();
     else if (!camp) corpo = vistaEntra();
     else {
@@ -210,9 +221,10 @@ const Sond = (() => {
     s_vista(v) { ui.v = v; render(); }, s_cat(v) { ui.cat = v; render(); }, s_ord(v) { ui.ord = v; render(); },
     s_dettaglio(v) { ui.id = v; ui.v = "dettaglio"; scrollTo(0, 0); render(); }, s_indietro() { ui.v = "proposte"; render(); },
     s_annulla() { ui.modif = null; ui.nuova = false; render(); }, s_modifica(v) { ui.modif = v; ui.v = "proposte"; scrollTo(0, 0); render(); },
-    s_login() { ui.v = "login"; render(); },
+    s_login() { ui.v = "login"; render(); }, s_gestione() { ui.v = "gestione"; render(); },
+    async s_chiudi() { fuori(); camp = null; ui.v = "proposte"; try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } if (admin) { try { await elenco(); } catch { /* ok */ } } render(); },
     async s_esci() {
-      fuori(); if (admin) { await ad.auth.signOut(); admin = false; }
+      fuori(); if (admin) { try { if (ad === cl) await cl.rpc("lascia_admin"); else await ad.auth.signOut(); } catch { /* ok */ } ad = ad0; admin = false; }
       camp = null; me = null; ui.v = "proposte"; errore = ""; try { localStorage.removeItem("lit-sond-codice"); } catch { /* ok */ } render();
     },
     async s_apri(cod) { try { await apri(cod); } catch (e) { dire(traduci(e), "avv"); } render(); },
@@ -243,9 +255,17 @@ const Sond = (() => {
         await q(cl.rpc("entra", { p_codice: ui.cod, p_nome: val(f, "nome"), p_invito: val(f, "inv") || null })); errore = ""; await apri(ui.cod); dire("Benvenuto nel sondaggio."); } catch (e) { dire(traduci(e), "avv"); }
       render();
     },
+    async s_gestione(f) {
+      try { crea(); if (!(await cl.auth.getSession()).data.session) await q(cl.auth.signInAnonymously()); uid = (await cl.auth.getUser()).data.user.id;
+        const r = await q(cl.rpc("diventa_admin", { p_codice: String(f.get("codice") || "") }));
+        if (r !== true) throw new Error("Codice non corretto.");
+        ad = cl; admin = true; ui.v = "proposte"; errore = ""; await elenco(); dire("Gestione attivata su questo telefono."); } catch (e) { dire(traduci(e), "avv"); }
+      render();
+    },
+    async s_partecipa(f) { await esegui(() => q(cl.rpc("entra", { p_codice: camp.codice, p_nome: val(f, "nome") })), "Ora partecipi al sondaggio."); render(); },
     async s_login(f) {
       try { crea(); const r = await ad.auth.signInWithPassword({ email: val(f, "email"), password: String(f.get("pw") || "") }); if (r.error) throw new Error("Email o password non corrette.");
-        const a = await ad.from("admins").select("user_id").maybeSingle(); if (!a.data) { await ad.auth.signOut(); throw new Error("Questo account non è amministratore."); }
+        if ((await ad.rpc("is_admin")).data !== true) { await ad.auth.signOut(); throw new Error("Questo account non è amministratore."); }
         admin = true; ui.v = "proposte"; errore = ""; await elenco(); } catch (e) { dire(traduci(e), "avv"); }
       render();
     },
