@@ -435,11 +435,8 @@ const vistaFrasi = () => `<div class="scheda">${TRIP.frasi.map(([it, en]) => `<d
 function vistaScambio() {
   const ps = gruppo();
   return `<div class="scheda"><div class="nome">Chi sei?</div><select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
-    <div class="scheda"><div class="nome">Sincronizzazione automatica</div><div class="desc" id="sync-stato">${esc(SyncX.testo())}</div>
-    ${SyncX.acceso()
-      ? `<div class="desc">Idee, voti e spese di tutti i telefoni si aggiornano da soli quando apri l'app, e ogni 25 secondi finché è aperta.</div><div class="riga"><button class="btn" data-az="syncOra">Sincronizza ora</button></div>
-         <div class="desc" style="margin-top:12px"><b>Attivare un altro telefono:</b> invia questo link, basta toccarlo.</div><div class="riga"><button class="btn pri" data-az="invita">Invia il link su WhatsApp</button><button class="btn" data-az="copiaInvito">${ic("copy", 18)}Copia il link</button></div>`
-      : `<div class="desc"><b>Come attivarla:</b> tocca il link di attivazione ricevuto su WhatsApp. Se non si apre nell'app, copialo e incollalo qui sotto in «Ricevi», poi premi «Importa il testo». In alternativa importa il file dei dati riservati.</div>`}</div>
+    <div class="scheda"><div class="nome">Idee e voti del gruppo</div><div class="desc">Le idee e i voti si condividono da soli nella pagina Idee, senza file né messaggi. Questa pagina serve solo per i vecchi scambi manuali, per le spese e per i dati riservati.</div>
+    <div class="riga"><button class="btn" data-az="vai" data-v="idee">Vai alle Idee</button></div></div>
     <div class="scheda"><div class="nome">Invia le tue idee, i voti e le spese</div><div class="desc">Il modo più semplice: manda il messaggio su WhatsApp. Chi lo riceve lo incolla qui sotto.</div>
     <div class="riga"><button class="btn pri" data-az="whatsapp">Invia su WhatsApp</button><button class="btn" data-az="copiaCodice">${ic("copy", 18)}Copia il testo</button></div>
     <div class="desc" style="margin-top:10px">In alternativa un file:</div><div class="riga"><button class="btn" data-az="condividi">Condividi il file</button><button class="btn" data-az="scarica">Scarica</button></div></div>

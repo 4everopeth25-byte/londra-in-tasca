@@ -23,3 +23,10 @@ Ingresso, nomi duplicati, estranei, proposte altrui, campi riservati, link non h
 
 ## Esportazione
 Dal pannello Gestione, «Esporta per aggiornare l'itinerario»: un file JSON con classifica, selezioni, voti e commenti.
+
+## Idee condivise (versione 17 e successive)
+- La pagina Idee dell'app è il sondaggio: un gruppo permanente `LONDRA2026` (`modo = 'continuo'`), una proposta per ogni idea.
+- Ingresso: una volta sola, scegliendo un nome tra `nomi_ammessi`. Il nome è di un solo telefono. Votano solo quei nomi: Sì (1), No (-1), Non so (0).
+- Stato dell'idea (`stato`): in votazione, approvata, respinta, fatta. Lo cambiano l'autore e gli `organizzatori`. A idea chiusa i voti sono bloccati.
+- Migrazione: `20261117_0002_idee_gruppo.sql`. Per liberare un nome: `delete from public.participants where nome = '...'` sul gruppo.
+- Limite noto: chi sceglie per primo un nome se lo prende; "Francesco" è anche organizzatore.
