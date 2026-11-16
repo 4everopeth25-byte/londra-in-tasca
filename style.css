@@ -1,4 +1,5 @@
 /* Londra in tasca 4, «Vetrina di Regent Street»: verde bottiglia, oro brunito, rosso cassetta postale, titoli in lettere da insegna. */
+@font-face{font-family:"Cinzel Decorative";src:url("fonts/CinzelDecorative-Bold.ttf") format("truetype");font-weight:700;font-display:swap}
 @font-face{font-family:"Cinzel";src:url("fonts/Cinzel.ttf") format("truetype");font-weight:400 900;font-display:swap}
 :root{
   --verde:#0e3b2f;--fascia:#0a2c23;--vetro:#124a3b;--acceso:#17594a;--oro:#c9a24b;--oro-t:#e2bf6a;--luce:#f6d77a;--rosso:#b3202a;--rosso-t:#ff8f87;--avorio:#f4ecd8;--muto:#cfd6c4;--ok:#8fd9a8;
@@ -32,7 +33,7 @@ button,input,select,textarea{font:inherit;color:inherit}
   font-family:var(--insegna);font-weight:700;font-size:1.55rem;line-height:1.15;letter-spacing:.07em;color:var(--oro-t);text-transform:uppercase}
 .fascia{position:relative}
 .fascia.luminosa{padding-top:26px}
-.luci{position:absolute;left:10px;right:10px;top:2px;width:calc(100% - 20px);height:16px}
+.luci{cursor:pointer;position:absolute;left:10px;right:10px;top:2px;width:calc(100% - 20px);height:16px}
 .lampada{fill:var(--luce);animation:luce 6s ease-in-out infinite}.lampada.l1{animation-delay:-2s}.lampada.l2{animation-delay:-4s}
 @keyframes luce{0%,100%{opacity:1}50%{opacity:.45}}
 .fascia p{margin:6px 0 0;font-family:var(--sans);font-size:.875rem;letter-spacing:0;text-transform:none;color:var(--muto);font-weight:400}
@@ -170,7 +171,7 @@ progress{width:100%;height:10px;accent-color:var(--oro);margin:6px 0}
 .dock button{position:relative;flex:1;min-width:0;min-height:62px;border:0;background:transparent;color:var(--muto);cursor:pointer;display:grid;place-items:center;align-content:center;gap:3px;padding:6px 2px;font-size:.75rem;font-weight:600;transition:color .18s var(--ease)}
 .dock button span{max-width:100%;overflow-wrap:anywhere;text-align:center}
 .dock button[aria-current="page"]{color:var(--luce);font-weight:700}
-.dock button[aria-current="page"]::before{content:"";position:absolute;top:-2px;left:22%;right:22%;height:4px;background:var(--luce)}
+
 .badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:20px;height:20px;border-radius:10px;background:var(--rosso);color:#f4ecd8;font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px}
 .toast{position:fixed;left:14px;right:14px;bottom:calc(88px + var(--sal));z-index:10;max-width:520px;margin:0 auto;display:flex;align-items:center;background:var(--luce);color:#2a2000;border-radius:var(--r)}
 .toast button{background:transparent;border:0;color:inherit;font-weight:800;min-height:48px;cursor:pointer}
@@ -185,3 +186,76 @@ progress{width:100%;height:10px;accent-color:var(--oro);margin:6px 0}
 .offline{padding:calc(8px + var(--sat)) 14px 8px;background:var(--rosso);color:#f4ecd8;font-weight:600;font-size:.875rem}
 .toast-x svg{display:block;margin:auto}
 @media (prefers-reduced-motion:reduce){.lampada{animation:none!important}}
+
+/* indicatore che scorre tra le voci della barra */
+.dock .ind{position:absolute;top:-2px;left:6px;width:calc((100% - 12px) / 5);height:4px;pointer-events:none;transition:transform .34s var(--ease)}
+.dock .ind::after{content:"";display:block;margin:0 22%;height:4px;background:var(--luce)}
+
+/* transizioni tra schermate: scivola nella direzione di navigazione, esce più in fretta di come entra */
+#vista{view-transition-name:vista}.dock{view-transition-name:dock}#neve{view-transition-name:neve}
+::view-transition-group(vista),::view-transition-group(dock),::view-transition-group(neve),::view-transition-group(root){animation:none}
+::view-transition-old(root),::view-transition-new(root),::view-transition-old(dock),::view-transition-new(dock),::view-transition-old(neve),::view-transition-new(neve),::view-transition-old(vista),::view-transition-new(vista){animation:none;mix-blend-mode:normal}
+::view-transition-old(root),::view-transition-old(dock),::view-transition-old(neve){display:none}
+html[data-dir="avanti"]::view-transition-old(vista){animation:esce-sx .16s ease-in both}
+html[data-dir="avanti"]::view-transition-new(vista){animation:entra-dx .3s var(--ease) both}
+html[data-dir="indietro"]::view-transition-old(vista){animation:esce-dx .16s ease-in both}
+html[data-dir="indietro"]::view-transition-new(vista){animation:entra-sx .3s var(--ease) both}
+@keyframes esce-sx{to{opacity:0;transform:translateX(-26px)}}
+@keyframes esce-dx{to{opacity:0;transform:translateX(26px)}}
+@keyframes entra-dx{from{opacity:0;transform:translateX(34px)}}
+@keyframes entra-sx{from{opacity:0;transform:translateX(-34px)}}
+#vista.entra-avanti{animation:entra-dx .3s var(--ease) both}
+#vista.entra-indietro{animation:entra-sx .3s var(--ease) both}
+#vista.stag :is(.tl li,.voce,.biglietto,.finestra),#vista.stag>.scheda{animation:sale .34s var(--ease) both;animation-delay:calc(var(--i,0) * 28ms)}
+@keyframes sale{from{opacity:0;transform:translateY(10px)}}
+
+/* lucine: si accendono una dopo l'altra all'apertura, un tocco le fa correre */
+.lampada{transform-box:fill-box;transform-origin:center}
+.luci.accendi .lampada{opacity:0;animation:accendi .5s var(--ease) forwards,luce 6s ease-in-out infinite;animation-delay:calc(var(--i) * 90ms),calc(1.2s + var(--i) * 90ms)}
+@keyframes accendi{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
+.luci.onda .lampada{animation:onda .7s var(--ease);animation-delay:calc(var(--i) * 60ms)}
+@keyframes onda{40%{transform:scale(1.9);opacity:1}}
+.tl li.in-corso .scheda::before{animation:batti 2.4s ease-in-out infinite}
+@keyframes batti{50%{transform:scale(1.45)}}
+
+/* finestre del viaggio: porte in 3D */
+.avvento{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;perspective:700px;margin:0 0 6px}
+.finestra{perspective:600px;position:relative;aspect-ratio:3/4;min-height:76px;border:0;padding:0;background:transparent;cursor:pointer;color:inherit}
+.finestra .dietro,.finestra .porta{position:absolute;inset:0;border-radius:8px;display:grid;place-items:center;align-content:center}
+.finestra .dietro{background:var(--acceso);border:2px solid var(--luce);color:var(--luce);box-shadow:inset 0 0 0 3px var(--acceso),inset 0 0 0 4px rgba(246,215,122,.5)}
+.finestra .dietro b{font-family:var(--insegna);font-size:2rem;line-height:1}
+.finestra .dietro small{font-size:.75rem;color:var(--avorio)}
+.finestra .porta{background:var(--fascia);border:2px solid var(--oro);box-shadow:inset 0 0 0 3px var(--fascia),inset 0 0 0 4px rgba(201,162,75,.4);transform-origin:left center;transition:transform .7s var(--ease);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.finestra .porta b{font-family:var(--insegna);font-size:1.25rem;color:var(--oro-t)}
+.finestra.chiusa .porta{border-style:dashed;box-shadow:none}
+.finestra.chiusa .porta b{color:var(--muto)}
+.finestra.aperta .porta{transform:rotateY(-112deg)}
+.finestra.pronta .porta{animation:invito 2.4s ease-in-out infinite}
+@keyframes invito{50%{transform:rotateY(-16deg)}}
+.avvento-info{margin:0 2px 8px}
+
+/* finestre di saluto */
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
+.popup{position:fixed;border:2px solid var(--oro);border-radius:10px;background:var(--fascia);color:var(--avorio);padding:0;width:min(92vw,400px);overflow:visible;box-shadow:inset 0 0 0 4px var(--fascia),inset 0 0 0 5px rgba(201,162,75,.4)}
+.popup::backdrop{background:rgba(4,22,17,.82)}
+.popup[open]{animation:apri .3s var(--ease)}
+.popup[open]::backdrop{animation:vela .3s ease both}
+.popup.esce{animation:chiudi .16s ease-in forwards}
+@keyframes apri{from{opacity:0;transform:translateY(14px) scale(.95)}}
+@keyframes chiudi{to{opacity:0;transform:translateY(8px) scale(.97)}}
+@keyframes vela{from{opacity:0}}
+.fxd{position:absolute;inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);pointer-events:none}
+#popup-luci .luci{position:absolute;left:12px;right:12px;top:4px;width:calc(100% - 24px);height:16px;cursor:default}
+.popup-corpo{position:relative;padding:32px 22px 20px;text-align:center}
+.popup-titolo{margin:0 0 10px;font:700 2rem/1.15 "Cinzel Decorative",Cinzel,Georgia,serif;letter-spacing:.03em;color:var(--oro-t);text-transform:none}
+.popup-corpo p{margin:0 0 16px}
+.popup .riga{justify-content:center}
+@media (prefers-reduced-motion:reduce){.finestra.aperta .porta{transform:none;opacity:0}.finestra .porta{animation:none!important}.dock .ind{transition:none}}
+.calmo .finestra.aperta .porta{transform:none;opacity:0}
+
+.finestra.no{animation:no .32s var(--ease)}
+@keyframes no{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
+@media (prefers-reduced-motion:reduce){.luci.accendi .lampada{opacity:1}}
+.calmo .luci.accendi .lampada{opacity:1}
+.popup{overscroll-behavior:contain}
+html:has(dialog[open]){overflow:hidden}
