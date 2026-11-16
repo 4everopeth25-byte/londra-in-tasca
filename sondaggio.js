@@ -173,6 +173,7 @@ const Sond = (() => {
       ${[...CL].sort((a, b) => a.posizione - b.posizione).map(r => { const p = P.find(x => x.id === r.proposal_id) || {}; return `<form class="f" data-form="s_sel"><input type="hidden" name="id" value="${p.id}"><label class="riga"><input type="checkbox" name="sel"${p.selezionato ? " checked" : ""}> <b>${r.posizione}. ${esc(r.titolo)}</b></label>
         <div class="riga"><input name="giorno" type="number" min="1" max="31" placeholder="Giorno" value="${p.giorno ?? ""}" aria-label="Giorno" style="width:90px"><input name="zona" maxlength="60" placeholder="Zona" value="${esc(p.zona || "")}" aria-label="Zona"></div>
         <input name="note" maxlength="500" placeholder="Note organizzative" value="${esc(p.note_org || "")}" aria-label="Note"><button class="btn" type="submit">Salva</button></form>`; }).join("") || `<div class="desc">Nessuna proposta.</div>`}</div>
+      <div class="scheda"><div class="nome">Esporta per aggiornare l'itinerario</div><div class="desc">Un solo file con classifica, proposte, selezioni, voti e commenti, da dare a Claude.</div><div class="riga"><button class="btn pri" data-az="s_esporta">Scarica il file</button><button class="btn" data-az="s_esportaCopia">Copia il contenuto</button></div></div>
       <div class="scheda"><div class="nome">Elimina il sondaggio</div><div class="riga"><button class="btn rosso" data-az="s_delcamp">Elimina definitivamente</button></div></div>`;
   }
   function vista() {
@@ -191,6 +192,16 @@ const Sond = (() => {
     return corpo;
   }
 
+  /* dati effettivamente presenti nel database, nell'ordine della classifica */
+  const esporta = () => ({
+    sondaggio: { titolo: camp.titolo, descrizione: camp.descrizione, fase: fase(camp), votazione_inizio: camp.votazione_inizio, chiusura: camp.chiusura, esportato: new Date().toISOString(), partecipanti: PA.filter(x => !x.revocato).map(x => x.nome) },
+    classifica: [...CL].sort((a, b) => a.posizione - b.posizione).map(r => { const p = P.find(x => x.id === r.proposal_id) || {}; return {
+      posizione: r.posizione, titolo: r.titolo, categoria: catNome(r.categoria), proponente: r.proponente, punteggio: r.punteggio, positivi: r.positivi, negativi: r.negativi, totale_voti: r.totale,
+      descrizione: p.descrizione, indirizzo: p.indirizzo, google_maps: p.maps_url, sito: p.sito_url, immagine: p.immagine_url,
+      selezionato_per_itinerario: !!p.selezionato, giorno: p.giorno, zona: p.zona, note_organizzative: p.note_org,
+      voti: V.filter(v => v.proposal_id === r.proposal_id).map(v => ({ partecipante: nomeDi(v.participant_id), voto: v.valore === 1 ? "mi piace" : "non mi piace", data: v.updated_at })),
+      commenti: C.filter(c => c.proposal_id === r.proposal_id).map(c => ({ autore: nomeDi(c.participant_id), testo: c.testo, data: c.created_at })) }; })
+  });
   /* ---------- azioni ---------- */
   const esegui = async (fn, ok2) => { errore = ""; try { await fn(); if (ok2) dire(ok2); } catch (e) { dire(traduci(e), "avv"); } await ricarica(); };
   const val = (f, n) => String(f.get(n) || "").trim();
@@ -216,6 +227,11 @@ const Sond = (() => {
     s_fase(v) { return esegui(() => q(ad.from("campaigns").update({ fase: +v }).eq("id", camp.id)), "Fase aggiornata."); },
     s_revoca(v) { const [id, r] = v.split("|"); return esegui(() => q(ad.from("participants").update({ revocato: r === "1" }).eq("id", id))); },
     s_delcamp() { if (confirm("Eliminare l'intero sondaggio con proposte, voti e commenti? Non si può annullare.")) return esegui(async () => { await q(ad.from("campaigns").delete().eq("id", camp.id)); fuori(); camp = null; await elenco(); }, "Sondaggio eliminato."); },
+    s_esporta() {
+      const f = new File([JSON.stringify(esporta(), null, 1)], `sondaggio-${camp.codice}.json`, { type: "application/json" }), u = URL.createObjectURL(f), l = document.createElement("a");
+      l.href = u; l.download = f.name; document.body.append(l); l.click(); l.remove(); setTimeout(() => URL.revokeObjectURL(u), 4000); dire("File scaricato: " + f.name); render();
+    },
+    async s_esportaCopia() { dire((await copia(JSON.stringify(esporta()))) ? "Contenuto copiato: incollalo nella chat." : "Copia non riuscita: usa «Scarica il file»."); render(); },
     async s_codiceInvito() {
       try { const r = await q(ad.from("invites").insert({ campaign_id: camp.id }).select("codice").single()); const e = document.getElementById("s-inviti"); if (e) e.textContent = "Codice di invito, valido una volta: " + r.codice; } catch (e) { dire(traduci(e), "avv"); render(); }
     }
