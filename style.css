@@ -1,261 +1,344 @@
-/* Londra in tasca 4, «Vetrina di Regent Street»: verde bottiglia, oro brunito, rosso cassetta postale, titoli in lettere da insegna. */
-@font-face{font-family:"Cinzel Decorative";src:url("fonts/CinzelDecorative-Bold.ttf") format("truetype");font-weight:700;font-display:swap}
-@font-face{font-family:"Cinzel";src:url("fonts/Cinzel.ttf") format("truetype");font-weight:400 900;font-display:swap}
+/* Londra in tasca, «Figurine e caramelle»: panna, burro, pomodoro, menta e mirtillo, bordi d'inchiostro con ombra piena,
+   dock a pillola, sfondo che si muove piano. Nessun testo viene generato qui: i testi sono quelli dell'app. */
+@font-face{font-family:"Fredoka";src:url("fonts/Fredoka.ttf") format("truetype");font-weight:300 700;font-stretch:75% 125%;font-display:swap}
 :root{
-  --verde:#0e3b2f;--fascia:#0a2c23;--vetro:#124a3b;--acceso:#17594a;--oro:#c9a24b;--oro-t:#e2bf6a;--luce:#f6d77a;--rosso:#b3202a;--rosso-t:#ff8f87;--avorio:#f4ecd8;--muto:#cfd6c4;--ok:#8fd9a8;
-  --insegna:"Cinzel","Trajan Pro",Georgia,"Times New Roman",serif;
-  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  --r:10px;--sal:env(safe-area-inset-bottom,0px);--sat:env(safe-area-inset-top,0px);
-  --filo:1px solid rgba(201,162,75,.38);--ease:cubic-bezier(.16,1,.3,1);
-  color-scheme:dark;
+  --fondo:#fff1d6;--carta:#ffffff;--ink:#1b1b1b;--muto:#4a4a4a;--burro:#ffe08a;--rosa:#ff8fa3;--pom:#ff5a4d;--menta:#c6f0d6;--blu:#4453e0;--notte:#243a8c;--mare:#17606b;
+  --si:#43d391;--no:#ff6b5e;--ok:#0a7a45;--rosso-t:#b42318;--allerta:#d92d20;--tenue:#f6e7c4;
+  --insegna:"Fredoka",ui-rounded,"SF Pro Rounded","Arial Rounded MT Bold","Trebuchet MS",system-ui,sans-serif;
+  --sans:"Fredoka",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  --r:16px;--sal:env(safe-area-inset-bottom,0px);--sat:env(safe-area-inset-top,0px);
+  --filo:2px solid var(--ink);--ombra:4px 4px 0 var(--ink);--ombra-s:2px 2px 0 var(--ink);
+  --ease:cubic-bezier(.16,1,.3,1);--molla:cubic-bezier(.34,1.56,.64,1);
+  color-scheme:light;
 }
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html{scroll-padding-top:calc(88px + var(--sat));scroll-padding-bottom:110px;-webkit-text-size-adjust:100%}
+html{scroll-padding-top:calc(88px + var(--sat));scroll-padding-bottom:130px;-webkit-text-size-adjust:100%;scrollbar-color:var(--ink) var(--fondo)}
 [hidden]{display:none!important}
-body{margin:0;background:var(--verde);color:var(--avorio);font:16px/1.45 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:calc(88px + var(--sal))}
-::selection{background:var(--luce);color:#2a2000}
-html{scrollbar-color:var(--oro) var(--fascia)}
-#neve{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.7}
-main{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:calc(12px + var(--sat)) 14px 0}
+body{margin:0;background:var(--fondo);color:var(--ink);font:500 16px/1.45 var(--sans);-webkit-font-smoothing:antialiased;min-height:100vh;padding-bottom:calc(104px + var(--sal));position:relative;overflow-x:hidden}
+::selection{background:var(--burro);color:var(--ink)}
+
+/* sfondo vivo: macchie di colore che derivano e coriandoli che scendono. Solo trasformazioni, niente ridisegni */
+body::before{content:"";position:fixed;inset:-25%;z-index:0;pointer-events:none;will-change:transform;
+  background:radial-gradient(38% 32% at 18% 22%,rgba(255,143,163,.5),transparent 70%),radial-gradient(34% 30% at 82% 16%,rgba(68,83,224,.2),transparent 70%),radial-gradient(44% 38% at 72% 84%,rgba(198,240,214,.95),transparent 70%),radial-gradient(34% 30% at 14% 80%,rgba(255,224,138,.9),transparent 70%);
+  animation:deriva 24s ease-in-out infinite alternate}
+body::after{content:"";position:fixed;left:0;right:0;top:-190px;height:calc(100% + 190px);z-index:0;pointer-events:none;opacity:.5;will-change:transform;
+  background-image:radial-gradient(circle,var(--pom) 0 3.5px,transparent 4px),radial-gradient(circle,var(--blu) 0 3px,transparent 3.5px),radial-gradient(circle,var(--ink) 0 2px,transparent 2.5px);
+  background-size:150px 190px,230px 190px,110px 190px;background-position:20px 30px,90px 120px,60px 70px;animation:cade 36s linear infinite}
+@keyframes deriva{from{transform:translate3d(-3%,2%,0) rotate(0deg) scale(1)}to{transform:translate3d(3%,-3%,0) rotate(7deg) scale(1.14)}}
+@keyframes cade{to{transform:translate3d(0,190px,0)}}
+#neve{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:0;opacity:.55;filter:invert(1)}
+main{position:relative;z-index:1;max-width:620px;margin:0 auto;padding:calc(14px + var(--sat)) 14px 0}
 h1,h2,h3{margin:0;font-weight:700;text-wrap:balance}
-h2,h3{font-family:var(--sans);color:var(--oro-t);font-size:1.125rem;letter-spacing:.01em;margin:22px 0 8px}
-h2.h-sez{font-size:1.125rem}
+h2,h3{font-family:var(--insegna);color:var(--ink);font-size:1.25rem;margin:24px 0 8px}
+h2.h-sez{font-size:1.25rem}
 p{text-wrap:pretty;margin:0 0 8px}
 .mute{color:var(--muto)}.piccolo{font-size:.875rem}
 .vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
-:focus-visible{outline:3px solid var(--luce);outline-offset:2px}
+:focus-visible{outline:4px solid var(--blu);outline-offset:3px}
 button,input,select,textarea{font:inherit;color:inherit}
 .num{font-variant-numeric:tabular-nums}
 
-/* fascia: il titolo di ogni schermata, lettere dorate su verde scuro */
-.vt,.fascia{display:block;margin:0 0 14px;padding:14px 16px 12px;background:var(--fascia);border:2px solid var(--oro);border-radius:8px;
-  box-shadow:inset 0 0 0 4px var(--fascia),inset 0 0 0 5px rgba(201,162,75,.4);
-  font-family:var(--insegna);font-weight:700;font-size:1.55rem;line-height:1.15;letter-spacing:.07em;color:var(--oro-t);text-transform:uppercase}
-.fascia{position:relative}
-.fascia.luminosa{padding-top:26px}
-.luci{cursor:pointer;position:absolute;left:10px;right:10px;top:2px;width:calc(100% - 20px);height:16px}
-.lampada{fill:var(--luce);animation:luce 6s ease-in-out infinite}.lampada.l1{animation-delay:-2s}.lampada.l2{animation-delay:-4s}
+/* intestazioni: cartelloni di burro, quello di Oggi è una scheda sfumata che galleggia */
+.vt,.fascia{display:block;margin:0 0 18px;padding:14px 18px 12px;background:var(--burro);border:var(--filo);border-radius:20px;box-shadow:var(--ombra);
+  font-family:var(--insegna);font-weight:700;font-size:1.7rem;line-height:1.12;letter-spacing:.005em;color:var(--ink)}
+.fascia{position:relative;overflow:hidden;background:linear-gradient(135deg,var(--rosa) 0%,#ffb86b 100%)}
+.fascia::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(110deg,transparent 38%,rgba(255,255,255,.6) 50%,transparent 62%);transform:translateX(-130%);animation:luccica 5.5s ease-in-out infinite}
+@keyframes luccica{0%,55%{transform:translateX(-130%)}100%{transform:translateX(130%)}}
+.fascia.luminosa{padding-top:28px}
+.luci{cursor:pointer;position:absolute;left:12px;right:12px;top:3px;width:calc(100% - 24px);height:16px}
+.lampada{fill:var(--ink);animation:luce 6s ease-in-out infinite}.lampada.l1{animation-delay:-2s}.lampada.l2{animation-delay:-4s}
 @keyframes luce{0%,100%{opacity:1}50%{opacity:.45}}
-.fascia p{margin:6px 0 0;font-family:var(--sans);font-size:.875rem;letter-spacing:0;text-transform:none;color:var(--muto);font-weight:400}
+.fascia p{margin:6px 0 0;font-family:var(--sans);font-size:.9375rem;font-weight:500;color:var(--ink)}
 .fascia h1{font:inherit;letter-spacing:inherit;margin:0}
 
-/* parole guida: prima e ultima tappa in vista */
-.guida{position:sticky;top:0;z-index:4;display:flex;justify-content:space-between;gap:12px;margin:0 -14px 10px;padding:calc(8px + var(--sat)) 14px 8px;background:var(--fascia);border-bottom:var(--filo);font-size:.875rem;color:var(--oro-t)}
+/* parole guida e giorni */
+.guida{position:sticky;top:0;z-index:4;display:flex;justify-content:space-between;gap:12px;margin:0 -14px 12px;padding:calc(8px + var(--sat)) 14px 8px;background:var(--burro);border-bottom:var(--filo);font-size:.875rem;font-weight:600;color:var(--ink)}
 .guida span{min-width:0;flex:1}.guida span+span{text-align:right}
-
-/* giorni */
-.rail{display:flex;gap:6px;margin:0 0 12px}
-.giorno{flex:1;min-height:56px;border:var(--filo);border-radius:var(--r);background:transparent;color:var(--muto);cursor:pointer;display:grid;place-items:center;line-height:1.1;transition:background-color .18s var(--ease),color .18s var(--ease),transform .18s var(--ease)}
-.giorno b{font-family:var(--insegna);font-size:1.25rem;color:inherit}
-.giorno small{font-size:.75rem}
-.giorno[aria-pressed="true"]{background:var(--oro);color:#2a2000;border-color:var(--oro)}
-.giorno:active{transform:scale(.96)}
+.rail{display:flex;gap:8px;margin:0 0 14px}
+.giorno{flex:1;min-height:58px;border:var(--filo);border-radius:16px;background:var(--carta);color:var(--ink);box-shadow:var(--ombra-s);cursor:pointer;display:grid;place-items:center;line-height:1.1;transition:transform .2s var(--molla),box-shadow .2s var(--ease),background-color .18s var(--ease)}
+.giorno b{font-family:var(--insegna);font-size:1.3rem;font-weight:700;color:inherit}
+.giorno small{font-size:.75rem;font-weight:600}
+.giorno[aria-pressed="true"]{background:var(--blu);color:#fff;transform:translateY(-3px) rotate(-1.5deg);box-shadow:var(--ombra)}
+.giorno:active{transform:translate(2px,2px);box-shadow:none}
 .giorno.oggi small::after{content:" oggi"}
 .testa-giorno{margin:0 0 12px}
-.testa-giorno h2{font-family:var(--sans);font-size:1.25rem;color:var(--avorio);margin:0 0 2px}
+.testa-giorno h2{font-size:1.35rem;margin:0 0 2px}
 
-/* riquadri di vetrina */
-.tl{list-style:none;margin:0;padding:0}
-.tl{--col:max(60px,4.2rem)}
-.tl li{display:grid;grid-template-columns:var(--col) 1fr;gap:10px;position:relative;padding-bottom:10px}
-.tl li::before{content:"";position:absolute;left:calc(var(--col) + 9px);top:22px;bottom:-4px;width:1px;background:var(--oro);opacity:.5}
+/* schede e linea del tempo */
+.tl{list-style:none;margin:0;padding:0;--col:max(60px,4.2rem)}
+.tl li{display:grid;grid-template-columns:var(--col) 1fr;gap:10px;position:relative;padding-bottom:12px}
+.tl li::before{content:"";position:absolute;left:calc(var(--col) + 8px);top:22px;bottom:-6px;width:4px;background:var(--ink);border-radius:2px}
 .tl li:last-child::before{display:none}
-.tl .quando{font-weight:700;font-size:1rem;text-align:right;padding:14px 12px 0 0;font-variant-numeric:tabular-nums;color:var(--oro-t);overflow-wrap:anywhere}
-.tl .quando.testo{font-size:.75rem;font-weight:600;color:var(--muto)}
-.scheda{position:relative;background:var(--vetro);border:var(--filo);border-radius:var(--r);padding:14px 16px;margin:0 0 10px}
-.tl .scheda{margin:0 0 0 14px}
-.tl .scheda::before{content:"";position:absolute;left:-19px;top:19px;width:9px;height:9px;border-radius:50%;background:var(--oro);outline:3px solid var(--verde)}
-.tl li.in-corso .scheda{background:var(--acceso);border:2px solid var(--luce);box-shadow:inset 0 0 0 3px var(--acceso),inset 0 0 0 4px rgba(246,215,122,.5)}
-.tl li.in-corso a.map{background:var(--luce);border-color:var(--luce);color:#2a2000}
-.tl li.in-corso .scheda::before{background:var(--luce)}
-.tl li.prossima .scheda{border:2px dashed var(--oro-t)}
-.tl li.passata .scheda{background:var(--fascia);border-color:rgba(201,162,75,.22)}
-.tl li.in-corso .nome::after,.tl li.prossima .nome::after,.tl li.passata .nome::after,.et{display:inline-block;margin-left:8px;padding:1px 9px;border:1px solid currentColor;border-radius:99px;font-size:.75rem;font-weight:700;vertical-align:2px;font-family:var(--sans)}
-.tl li.in-corso .nome::after{content:"In corso";color:var(--luce)}
-.tl li.prossima .nome::after{content:"Prossima";color:var(--oro-t)}
-.tl li.passata .nome::after{content:"Passata";color:var(--muto)}
+.tl .quando{font-weight:700;font-size:1rem;text-align:right;padding:14px 12px 0 0;font-variant-numeric:tabular-nums;color:var(--ink);overflow-wrap:anywhere}
+.tl .quando.testo{font-size:.8125rem;font-weight:600;color:var(--muto)}
+.scheda{position:relative;background:var(--carta);border:var(--filo);border-radius:var(--r);box-shadow:var(--ombra);padding:14px 16px;margin:0 0 14px}
+.tl .scheda{margin:0 0 0 16px}
+.tl .scheda::before{content:"";position:absolute;left:-25px;top:17px;width:15px;height:15px;border-radius:50%;background:var(--pom);border:3px solid var(--ink)}
+.tl li.in-corso .scheda,div.scheda.acceso{background:linear-gradient(145deg,var(--notte),var(--mare));color:#fff;border-color:var(--ink);box-shadow:var(--ombra)}
+.tl li.in-corso .scheda .desc,div.scheda.acceso .desc,.tl li.in-corso .nota-t summary,div.scheda.acceso .nota-t summary{color:#dbe7ff}
+.tl li.in-corso .scheda::before{background:var(--burro);animation:batti 2.4s ease-in-out infinite}
+.tl li.prossima .scheda,.scheda.tratt{border-style:dashed;background:#fffaf0;box-shadow:none}
+.tl li.passata .scheda{background:var(--tenue);box-shadow:none}
+.tl li.passata .scheda::before{background:#fff}
+.tl li.in-corso .nome::after,.tl li.prossima .nome::after,.tl li.passata .nome::after,.et{display:inline-block;margin-left:8px;padding:1px 10px;border:2px solid var(--ink);border-radius:99px;background:#fff;color:var(--ink);font-size:.75rem;font-weight:700;vertical-align:2px;font-family:var(--sans)}
+.tl li.in-corso .nome::after{content:"In corso";background:var(--burro)}
+.tl li.prossima .nome::after{content:"Prossima"}
+.tl li.passata .nome::after{content:"Passata";background:var(--tenue)}
 .nome{font-weight:700}
-.desc{color:var(--muto);font-size:.875rem;margin-top:2px}
+.desc{color:var(--muto);font-size:.875rem;margin-top:2px;font-weight:500}
 .nota-t{margin-top:8px}
-.adesso{background:var(--acceso);border:2px solid var(--luce)}
-.scheda.acceso{background:var(--acceso);border:2px solid var(--luce);box-shadow:inset 0 0 0 3px var(--acceso),inset 0 0 0 4px rgba(246,215,122,.5)}
-.scheda.acceso .et{color:var(--luce)}.scheda.acceso a.map.pri{background:var(--luce)}
-.scheda.tratt{border:2px dashed var(--oro-t)}.scheda.tratt .et{color:var(--oro-t)}
-.totale{margin:6px 2px 14px;font-size:.875rem;color:var(--oro-t)}
+.adesso{background:var(--menta)}
+.totale{margin:6px 2px 14px;font-size:.875rem;font-weight:600}
 .scheda.pub{border-style:dashed}
 
-/* elenco della schermata Oggi: righe, non tessere */
-.elenco{margin:0 0 6px;border:var(--filo);border-radius:var(--r);overflow:hidden;background:var(--vetro)}
-.voce{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;width:100%;min-height:60px;padding:10px 14px;border:0;background:transparent;text-align:left;cursor:pointer;color:inherit;text-decoration:none;transition:background-color .18s var(--ease)}
+/* elenco di Oggi */
+.elenco{margin:0 0 8px;border:var(--filo);border-radius:var(--r);box-shadow:var(--ombra);overflow:hidden;background:var(--carta)}
+.voce{display:grid;grid-template-columns:28px 1fr auto;gap:12px;align-items:center;width:100%;min-height:62px;padding:10px 14px;border:0;background:transparent;text-align:left;cursor:pointer;color:inherit;text-decoration:none;transition:background-color .18s var(--ease),transform .2s var(--molla)}
 .voce+.voce{border-top:var(--filo)}
-.voce svg:first-child{color:var(--oro-t)}
-.voce .t b{display:block;font-weight:700}.voce .t span{display:block;font-size:.875rem;color:var(--muto)}
-.voce .v{font-weight:700;font-variant-numeric:tabular-nums;color:var(--avorio);text-align:right}
-.voce .v.allerta{background:var(--rosso);color:#f4ecd8;border-radius:99px;min-width:26px;padding:1px 8px;text-align:center}
-.voce .chev{color:var(--oro)}
-@media (hover:hover){.voce:hover{background:var(--acceso)}}
-.voce:active{background:var(--acceso)}
+.voce svg:first-child{color:var(--ink)}
+.voce .t b{display:block;font-weight:700}.voce .t span{display:block;font-size:.875rem;color:var(--muto);font-weight:500}
+.voce .v{font-weight:700;font-variant-numeric:tabular-nums;color:var(--ink);text-align:right}
+.voce .v.allerta{background:var(--allerta);color:#fff;border:2px solid var(--ink);border-radius:99px;min-width:28px;padding:1px 8px;text-align:center}
+.voce .chev{color:var(--ink)}
+@media (hover:hover){.voce:hover{background:var(--burro)}}
+.voce:active{background:var(--burro);transform:scale(.985)}
 
-/* pulsanti, chip, etichette */
-.btn,a.map{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;padding:8px 16px;border-radius:99px;border:1px solid var(--oro);background:transparent;color:var(--oro-t);cursor:pointer;font-weight:700;font-size:.875rem;text-decoration:none;transition:transform .18s var(--ease),background-color .18s var(--ease)}
-.btn.pri,a.map.pri{background:var(--luce);border-color:var(--luce);color:#2a2000}
-.btn.rosso{border-color:var(--rosso-t);color:var(--rosso-t)}
-.btn.tondo{padding:8px;min-width:44px}
-.btn:active,a.map:active,.chip:active,.voto:active{transform:scale(.96)}
-@media (hover:hover){.btn:hover,a.map:hover{background:rgba(201,162,75,.18)}.btn.pri:hover,a.map.pri:hover{background:#e2bf6a}}
-.riga{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-top:10px}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:6px 6px 10px;margin:-4px -6px 0;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
-.chips.avvolgi{flex-wrap:wrap;overflow:visible;margin:0}
-.chip{flex:0 0 auto;min-height:44px;padding:6px 14px;border-radius:99px;border:1px solid var(--oro);background:transparent;color:var(--oro-t);cursor:pointer;font-weight:700;font-size:.875rem;transition:transform .18s var(--ease),background-color .18s var(--ease)}
-.chip[aria-pressed="true"]{background:var(--oro);color:#2a2000}
-.pill{display:inline-flex;align-items:center;border-radius:99px;padding:2px 10px;font-size:.75rem;font-weight:700;border:1px solid var(--ok);color:var(--ok)}
-.pill.st0{border-color:var(--muto);color:var(--muto)}.pill.st2{border-color:var(--rosso-t);color:var(--rosso-t)}.pill.st3{border-color:var(--oro-t);color:var(--oro-t)}
+/* pulsanti, chip, etichette: figurine che si schiacciano */
+.btn,a.map{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:46px;padding:8px 18px;border-radius:16px;border:var(--filo);background:#fff;color:var(--ink);box-shadow:var(--ombra-s);cursor:pointer;font-weight:700;font-size:.9375rem;text-decoration:none;transition:transform .2s var(--molla),box-shadow .2s var(--ease),background-color .18s var(--ease)}
+.btn.pri,a.map.pri{background:var(--pom)}
+.btn.rosso{color:var(--rosso-t)}
+.btn.tondo{padding:8px;min-width:46px}
+.btn:active,a.map:active,.chip:active,.voto:active{transform:translate(2px,2px);box-shadow:none}
+@media (hover:hover){.btn:hover,a.map:hover{background:var(--burro);transform:translateY(-2px);box-shadow:3px 4px 0 var(--ink)}.btn.pri:hover,a.map.pri:hover{background:#ff7468}}
+.btn[disabled]{opacity:.55;cursor:default;box-shadow:none}
+.riga{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:12px}
+.chips{display:flex;gap:10px;overflow-x:auto;padding:6px 8px 12px;margin:-4px -8px 0;scrollbar-width:none}.chips::-webkit-scrollbar{display:none}
+.chips.avvolgi{flex-wrap:wrap;overflow:visible;margin:0;padding-left:0;padding-right:0}
+.chip{flex:0 0 auto;min-height:46px;padding:6px 16px;border-radius:99px;border:var(--filo);background:#fff;color:var(--ink);box-shadow:var(--ombra-s);cursor:pointer;font-weight:700;font-size:.9375rem;transition:transform .2s var(--molla),box-shadow .2s var(--ease),background-color .18s var(--ease)}
+.chip[aria-pressed="true"]{background:var(--blu);color:#fff;transform:translateY(-2px)}
+.pill{display:inline-flex;align-items:center;border-radius:99px;padding:2px 10px;font-size:.75rem;font-weight:700;border:2px solid var(--ink);background:var(--menta);color:var(--ink)}
+.pill.st0{background:#fff}.pill.st2{background:var(--no)}.pill.st3{background:var(--burro)}
 .cat{font-size:.75rem;color:var(--muto);font-weight:600}
 
 /* prenotazioni: biglietti con tratta */
-.biglietto{position:relative;margin:0 0 12px;padding:16px;background:var(--vetro);border:var(--filo);border-radius:var(--r);overflow:hidden}
+.biglietto{position:relative;margin:0 0 16px;padding:16px;background:var(--carta);border:var(--filo);border-radius:var(--r);box-shadow:var(--ombra);overflow:hidden}
 .tratta{display:flex;align-items:center;justify-content:space-between;gap:8px}
-.tratta b{font-family:var(--insegna);font-size:2rem;line-height:1;letter-spacing:.06em;color:var(--oro-t)}
-.tratta svg{color:var(--oro);flex:0 0 auto}
-.tratta small{display:block;font-family:var(--sans);font-size:.75rem;color:var(--muto);letter-spacing:0;font-weight:500}
-.biglietto .perfora{position:relative;border-top:2px dashed rgba(201,162,75,.45);margin:16px 0 12px}
-.biglietto .perfora::before,.biglietto .perfora::after{content:"";position:absolute;top:-11px;width:20px;height:20px;border-radius:50%;background:var(--verde)}
-.biglietto .perfora::before{left:-26px}.biglietto .perfora::after{right:-26px}
-.codice{font-family:ui-monospace,Menlo,monospace;font-size:1.25rem;letter-spacing:.14em;color:var(--luce);font-weight:700}
+.tratta b{font-family:var(--insegna);font-size:2.2rem;font-weight:700;line-height:1;letter-spacing:.03em;color:var(--ink)}
+.tratta svg{color:var(--ink);flex:0 0 auto}
+.tratta small{display:block;font-family:var(--sans);font-size:.75rem;color:var(--muto);letter-spacing:0;font-weight:600}
+.biglietto .perfora{position:relative;border-top:3px dashed var(--ink);margin:16px 0 12px}
+.biglietto .perfora::before,.biglietto .perfora::after{content:"";position:absolute;top:-13px;width:22px;height:22px;border-radius:50%;background:var(--fondo);border:2px solid var(--ink)}
+.biglietto .perfora::before{left:-29px}.biglietto .perfora::after{right:-29px}
+.codice{font-family:ui-monospace,Menlo,monospace;font-size:1.25rem;letter-spacing:.14em;color:var(--ink);font-weight:700;background:var(--burro);padding:2px 10px;border:2px solid var(--ink);border-radius:10px}
 
-/* sondaggio */
+/* sondaggio (barre) */
 .sond{margin-top:12px;padding-top:12px;border-top:var(--filo)}
-.barra{display:flex;gap:3px;height:10px;margin:2px 0 10px}.barra i{border-radius:99px;min-width:0}
-.barra .s{background:var(--ok)}.barra .n{background:var(--rosso-t)}.barra .x{background:var(--oro-t)}.barra .m{background:rgba(244,236,216,.2)}
-.voto{min-height:44px;padding:8px 18px;border-radius:99px;border:1px solid currentColor;background:transparent;cursor:pointer;font-weight:700;transition:transform .18s var(--ease),background-color .18s var(--ease)}
-.voto.s1{color:var(--ok)}.voto.s2{color:var(--rosso-t)}.voto.s3{color:var(--oro-t)}
-.voto[aria-pressed="true"].s1{background:var(--ok);color:#0a2c23}
-.voto[aria-pressed="true"].s2{background:var(--rosso-t);color:#0a2c23}
-.voto[aria-pressed="true"].s3{background:var(--oro-t);color:#2a2000}
-.voto[disabled]{opacity:.5;cursor:default}
+.barra{display:flex;gap:3px;height:12px;margin:2px 0 10px}.barra i{border-radius:99px;min-width:0;border:2px solid var(--ink)}
+.barra .s{background:var(--si)}.barra .n{background:var(--no)}.barra .x{background:var(--burro)}.barra .m{background:var(--tenue)}
+.voto{min-height:46px;padding:8px 18px;border-radius:99px;border:var(--filo);background:#fff;color:var(--ink);box-shadow:var(--ombra-s);cursor:pointer;font-weight:700;transition:transform .2s var(--molla),box-shadow .2s var(--ease)}
+.voto[aria-pressed="true"].s1{background:var(--si)}.voto[aria-pressed="true"].s2{background:var(--no)}.voto[aria-pressed="true"].s3{background:var(--burro)}
+.voto[disabled]{opacity:.55;cursor:default}
 
 /* moduli */
-form.f,.f{display:grid;gap:8px}
-label.mute{display:block;font-size:.875rem}
-input[type=text],input[type=number],select,textarea{width:100%;min-height:48px;background:var(--fascia);border:1px solid var(--oro);border-radius:8px;padding:10px 14px}
-input:focus,select:focus,textarea:focus{outline:3px solid var(--luce);outline-offset:1px}
+form.f,.f{display:grid;gap:10px}
+label.mute{display:block;font-size:.875rem;font-weight:600}
+input:not([type=checkbox]):not([type=file]):not([type=hidden]):not([type=radio]):not([type=range]):not([type=submit]),select,textarea{width:100%;min-height:50px;background:#fff;border:var(--filo);border-radius:14px;padding:10px 14px;color:var(--ink);font-weight:500}
+input:focus,select:focus,textarea:focus{outline:4px solid var(--blu);outline-offset:2px}
 ::placeholder{color:var(--muto);opacity:1}
-fieldset.chk{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:8px}
-fieldset.chk legend{font-size:.875rem;color:var(--muto);margin-bottom:6px}
-.chk label{display:flex;gap:8px;align-items:center;min-height:44px;padding:4px 14px;border:1px solid var(--oro);border-radius:99px}
-input[type=checkbox]{width:22px;height:22px;accent-color:var(--oro)}
+fieldset.chk{border:0;padding:0;margin:0;display:flex;flex-wrap:wrap;gap:10px}
+fieldset.chk legend{font-size:.875rem;color:var(--muto);margin-bottom:6px;font-weight:600}
+.chk label{display:flex;gap:8px;align-items:center;min-height:46px;padding:4px 14px;border:var(--filo);border-radius:99px;background:#fff;font-weight:600}
+input[type=checkbox]{width:24px;height:24px;accent-color:var(--blu)}
 input[type=file]{max-width:100%}
-input[type=file]::file-selector-button{min-height:44px;margin-right:10px;border:1px solid var(--oro);border-radius:99px;background:transparent;color:var(--oro-t);padding:6px 14px;font-weight:700}
-details.nuova>summary,.nota-t summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;font-weight:700;color:var(--oro-t)}
-.nota-t summary{font-size:.875rem;font-weight:500;color:var(--muto)}
+input[type=file]::file-selector-button{min-height:46px;margin-right:10px;border:var(--filo);border-radius:14px;background:#fff;color:var(--ink);padding:6px 14px;font-weight:700;box-shadow:var(--ombra-s)}
+details.nuova>summary,.nota-t summary{cursor:pointer;min-height:46px;display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;font-weight:700;color:var(--ink)}
+.nota-t summary{font-size:.875rem;font-weight:600;color:var(--muto)}
 summary::-webkit-details-marker{display:none}
-details.nuova>summary::after,.nota-t summary::after{content:"";width:9px;height:9px;margin-right:4px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg);transition:transform .18s var(--ease)}
+details.nuova>summary::after,.nota-t summary::after{content:"";width:10px;height:10px;margin-right:4px;border:solid currentColor;border-width:0 3px 3px 0;transform:rotate(45deg);transition:transform .25s var(--molla)}
 details[open]>summary::after{transform:rotate(-135deg)}
-label.c{display:flex;gap:12px;align-items:flex-start;min-height:44px;margin:0 0 6px}
+label.c{display:flex;gap:12px;align-items:flex-start;min-height:46px;margin:0 0 6px}
 label.c.fatto span{text-decoration:line-through;opacity:.6}
 ul.lista{margin:0;padding-left:20px;color:var(--muto)}ul.lista li{margin:0 0 4px}
-progress{width:100%;height:10px;accent-color:var(--oro);margin:6px 0}
-.tot{font-family:var(--insegna);font-size:2rem;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--oro-t)}
-.pers{display:grid;grid-template-columns:minmax(76px,30%) 1fr auto;gap:8px;align-items:center;margin:6px 0;font-size:.875rem}
+progress{width:100%;height:12px;accent-color:var(--blu);margin:6px 0}
+.tot{font-family:var(--insegna);font-size:2.2rem;font-weight:700;line-height:1.05;font-variant-numeric:tabular-nums;color:var(--ink)}
+.pers{display:grid;grid-template-columns:minmax(76px,30%) 1fr auto;gap:8px;align-items:center;margin:6px 0;font-size:.875rem;font-weight:600}
 .pers>span:first-child{overflow-wrap:anywhere}
-.pers .b{height:8px;border-radius:99px;background:rgba(244,236,216,.16);overflow:hidden}.pers .b i{display:block;height:100%;background:var(--oro);border-radius:99px}
-.msg{border:1px solid var(--ok);color:var(--ok);border-radius:8px;padding:10px 14px;margin:0 0 12px;font-weight:600}
-.msg.avv{border-color:var(--luce);color:var(--luce)}
-.vuoto{text-align:center;color:var(--muto);padding:22px}
+.pers .b{height:12px;border-radius:99px;background:#fff;border:2px solid var(--ink);overflow:hidden}.pers .b i{display:block;height:100%;background:var(--pom)}
+.msg{border:var(--filo);background:var(--menta);color:var(--ink);border-radius:14px;box-shadow:var(--ombra-s);padding:10px 14px;margin:0 0 14px;font-weight:600}
+.msg.avv{background:var(--burro)}
+.vuoto{text-align:center;color:var(--muto);padding:22px;font-weight:600}
 .tabella{display:grid;grid-template-columns:1fr 1fr;gap:14px}.tabella>div>div{padding:7px 0;border-bottom:var(--filo)}
-.frase{padding:10px 0;border-bottom:var(--filo)}.frase:last-child{border:0}
+.frase{padding:10px 0;border-bottom:2px dashed var(--ink)}.frase:last-child{border:0}
 .frase .nome{font-family:var(--sans);font-size:1.125rem}
-
-/* barra di navigazione */
-.dock{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;padding:0 6px var(--sal);background:var(--fascia);border-top:2px solid var(--oro)}
-.dock button{position:relative;flex:1;min-width:0;min-height:62px;border:0;background:transparent;color:var(--muto);cursor:pointer;display:grid;place-items:center;align-content:center;gap:3px;padding:6px 2px;font-size:.75rem;font-weight:600;transition:color .18s var(--ease)}
-.dock button span{max-width:100%;overflow-wrap:anywhere;text-align:center}
-.dock button[aria-current="page"]{color:var(--luce);font-weight:700}
-
-.badge{position:absolute;top:6px;left:calc(50% + 6px);min-width:20px;height:20px;border-radius:10px;background:var(--rosso);color:#f4ecd8;font-size:.75rem;font-weight:800;display:flex;align-items:center;justify-content:center;padding:0 5px}
-.toast{position:fixed;left:14px;right:14px;bottom:calc(88px + var(--sal));z-index:10;max-width:520px;margin:0 auto;display:flex;align-items:center;background:var(--luce);color:#2a2000;border-radius:var(--r)}
-.toast button{background:transparent;border:0;color:inherit;font-weight:800;min-height:48px;cursor:pointer}
-.toast-azione{flex:1;text-align:left;padding:12px 8px 12px 16px}.toast-x{min-width:48px;font-size:1.125rem}
-.installa{position:fixed;left:14px;right:14px;bottom:calc(88px + var(--sal));z-index:9;max-width:520px;margin:0 auto;display:flex;gap:10px;align-items:center;background:var(--fascia);border:2px solid var(--oro);border-radius:var(--r);padding:12px 14px}
-.installa .tx{flex:1;font-size:.875rem}.installa .tx b{display:block}.installa .tx span{color:var(--muto)}
-.calmo *,.calmo *::before,.calmo *::after{animation:none!important;transition:none!important}
-@media (prefers-reduced-motion:reduce){html:not(.forza) #neve{display:none}html:not(.forza) *{animation:none!important;transition:none!important}}
-
-.pila>.scheda{background:transparent;border:0;border-bottom:var(--filo);border-radius:0;padding-left:2px;padding-right:2px;margin:0}
+.pila>.scheda{background:transparent;border:0;border-bottom:2px dashed var(--ink);border-radius:0;box-shadow:none;padding-left:2px;padding-right:2px;margin:0}
 .pila>.scheda:last-child{border-bottom:0}
-.offline{padding:calc(8px + var(--sat)) 14px 8px;background:var(--rosso);color:#f4ecd8;font-weight:600;font-size:.875rem}
+
+/* barra di navigazione: pillola che galleggia, con un'etichetta adesiva che scivola sulla voce attiva */
+.dock{position:fixed;left:10px;right:10px;bottom:calc(10px + var(--sal));z-index:8;display:flex;padding:5px;background:#fff;border:var(--filo);border-radius:28px;box-shadow:var(--ombra);max-width:600px;margin:0 auto}
+.dock button{position:relative;flex:1;min-width:0;min-height:56px;border:0;background:transparent;color:var(--muto);cursor:pointer;display:grid;place-items:center;align-content:center;gap:2px;padding:6px 2px;font-size:.75rem;font-weight:600;transition:color .18s var(--ease),transform .25s var(--molla)}
+.dock button span{max-width:100%;overflow-wrap:anywhere;text-align:center}
+.dock button svg{transition:transform .3s var(--molla)}
+.dock button[aria-current="page"]{color:var(--ink);font-weight:700}
+.dock button[aria-current="page"] svg{transform:translateY(-2px) scale(1.12)}
+.dock button:active{transform:scale(.94)}
+.dock .ind{position:absolute;top:5px;left:5px;width:calc((100% - 10px) / 5);height:56px;pointer-events:none;transition:transform .42s var(--molla)}
+.dock .ind::after{content:"";display:block;height:100%;margin:0 3px;background:var(--burro);border:var(--filo);border-radius:22px;box-shadow:var(--ombra-s)}
+.badge{position:absolute;top:2px;left:calc(50% + 4px);min-width:22px;height:22px;border-radius:11px;background:var(--allerta);color:#fff;border:2px solid var(--ink);font-size:.75rem;font-weight:700;display:flex;align-items:center;justify-content:center;padding:0 5px}
+
+/* avvisi che saltano fuori */
+.toast{position:fixed;left:14px;right:14px;bottom:calc(98px + var(--sal));z-index:10;max-width:520px;margin:0 auto;display:flex;align-items:center;background:var(--ink);color:#fff;border-radius:18px;box-shadow:0 8px 0 rgba(27,27,27,.25)}
+.toast:not([hidden]){animation:salta .5s var(--molla) both}
+.toast button{background:transparent;border:0;color:inherit;font-weight:700;min-height:48px;cursor:pointer}
+.toast-azione{flex:1;text-align:left;padding:12px 8px 12px 16px}.toast-x{min-width:48px;font-size:1.125rem}
 .toast-x svg{display:block;margin:auto}
-@media (prefers-reduced-motion:reduce){html:not(.forza) .lampada{animation:none!important}}
+.installa{position:fixed;left:14px;right:14px;bottom:calc(98px + var(--sal));z-index:9;max-width:520px;margin:0 auto;display:flex;gap:10px;align-items:center;background:var(--burro);border:var(--filo);border-radius:18px;box-shadow:var(--ombra);padding:12px 14px;animation:salta .5s var(--molla) both}
+.installa .tx{flex:1;font-size:.875rem;font-weight:600}.installa .tx b{display:block}.installa .tx span{color:var(--ink);font-weight:500}
+.offline{padding:calc(8px + var(--sat)) 14px 8px;background:var(--allerta);color:#fff;font-weight:600;font-size:.875rem;border-bottom:var(--filo)}
+@keyframes salta{from{opacity:0;transform:translateY(40px) scale(.9) rotate(-2deg)}}
 
-/* indicatore che scorre tra le voci della barra */
-.dock .ind{position:absolute;top:-2px;left:6px;width:calc((100% - 12px) / 5);height:4px;pointer-events:none;transition:transform .34s var(--ease)}
-.dock .ind::after{content:"";display:block;margin:0 22%;height:4px;background:var(--luce)}
+/* movimento ridotto o spento: tutto fermo, anche gli elementi generati dal foglio di stile */
+.calmo *,.calmo *::before,.calmo *::after{animation:none!important;transition:none!important}
+@media (prefers-reduced-motion:reduce){html:not(.forza) #neve{display:none}html:not(.forza) *,html:not(.forza) *::before,html:not(.forza) *::after{animation:none!important;transition:none!important}}
 
-/* transizioni tra schermate: scivola nella direzione di navigazione, esce più in fretta di come entra */
+/* transizioni tra schermate: la pagina gira in 3D nella direzione di navigazione */
 #vista{view-transition-name:vista}.dock{view-transition-name:dock}#neve{view-transition-name:neve}
 ::view-transition-group(vista),::view-transition-group(dock),::view-transition-group(neve),::view-transition-group(root){animation:none}
 ::view-transition-old(root),::view-transition-new(root),::view-transition-old(dock),::view-transition-new(dock),::view-transition-old(neve),::view-transition-new(neve),::view-transition-old(vista),::view-transition-new(vista){animation:none;mix-blend-mode:normal}
 ::view-transition-old(root),::view-transition-old(dock),::view-transition-old(neve){display:none}
-html[data-dir="avanti"]::view-transition-old(vista){animation:esce-sx .16s ease-in both}
-html[data-dir="avanti"]::view-transition-new(vista){animation:entra-dx .3s var(--ease) both}
-html[data-dir="indietro"]::view-transition-old(vista){animation:esce-dx .16s ease-in both}
-html[data-dir="indietro"]::view-transition-new(vista){animation:entra-sx .3s var(--ease) both}
-@keyframes esce-sx{to{opacity:0;transform:translateX(-26px)}}
-@keyframes esce-dx{to{opacity:0;transform:translateX(26px)}}
-@keyframes entra-dx{from{opacity:0;transform:translateX(34px)}}
-@keyframes entra-sx{from{opacity:0;transform:translateX(-34px)}}
-#vista.entra-avanti{animation:entra-dx .3s var(--ease) both}
-#vista.entra-indietro{animation:entra-sx .3s var(--ease) both}
-#vista.stag :is(.tl li,.voce,.biglietto,.finestra),#vista.stag>.scheda{animation:sale .34s var(--ease) both;animation-delay:calc(var(--i,0) * 28ms)}
-@keyframes sale{from{opacity:0;transform:translateY(10px)}}
+html[data-dir="avanti"]::view-transition-old(vista){animation:esce-sx .18s ease-in both}
+html[data-dir="avanti"]::view-transition-new(vista){animation:entra-dx .42s var(--molla) both}
+html[data-dir="indietro"]::view-transition-old(vista){animation:esce-dx .18s ease-in both}
+html[data-dir="indietro"]::view-transition-new(vista){animation:entra-sx .42s var(--molla) both}
+@keyframes esce-sx{to{opacity:0;transform:perspective(900px) translateX(-48px) rotateY(16deg) scale(.95)}}
+@keyframes esce-dx{to{opacity:0;transform:perspective(900px) translateX(48px) rotateY(-16deg) scale(.95)}}
+@keyframes entra-dx{from{opacity:0;transform:perspective(900px) translateX(56px) rotateY(-18deg) scale(.95)}}
+@keyframes entra-sx{from{opacity:0;transform:perspective(900px) translateX(-56px) rotateY(18deg) scale(.95)}}
+#vista.entra-avanti{animation:entra-dx .42s var(--molla) both}
+#vista.entra-indietro{animation:entra-sx .42s var(--molla) both}
+#vista.stag :is(.tl li,.voce,.biglietto,.finestra),#vista.stag>.scheda{animation:sale .5s var(--molla) both;animation-delay:calc(var(--i,0) * 40ms)}
+@keyframes sale{from{opacity:0;transform:perspective(700px) translateY(22px) rotateX(-14deg) scale(.96)}}
+/* le schede lontane entrano mentre si scorre (dove il browser lo sa fare) */
+@supports (animation-timeline:view()){
+  #vista article.scheda:nth-of-type(n+6),#vista .biglietto:nth-of-type(n+3){animation:sale linear both;animation-timeline:view();animation-range:entry 0% entry 55%}
+}
 
-/* lucine: si accendono una dopo l'altra all'apertura, un tocco le fa correre */
+/* lucine: si accendono una dopo l'altra, un tocco le fa correre */
 .lampada{transform-box:fill-box;transform-origin:center}
-.luci.accendi .lampada{opacity:0;animation:accendi .5s var(--ease) forwards,luce 6s ease-in-out infinite;animation-delay:calc(var(--i) * 90ms),calc(1.2s + var(--i) * 90ms)}
+.luci.accendi .lampada{opacity:0;animation:accendi .5s var(--molla) forwards,luce 6s ease-in-out infinite;animation-delay:calc(var(--i) * 90ms),calc(1.2s + var(--i) * 90ms)}
 @keyframes accendi{from{opacity:0;transform:scale(.4)}to{opacity:1;transform:scale(1)}}
 .luci.onda .lampada{animation:onda .7s var(--ease);animation-delay:calc(var(--i) * 60ms)}
 @keyframes onda{40%{transform:scale(1.9);opacity:1}}
-.tl li.in-corso .scheda::before{animation:batti 2.4s ease-in-out infinite}
-@keyframes batti{50%{transform:scale(1.45)}}
+@keyframes batti{50%{transform:scale(1.5)}}
 
 /* finestre del viaggio: porte in 3D */
-.avvento{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:8px;perspective:700px;margin:0 0 6px}
-.finestra{perspective:600px;position:relative;aspect-ratio:3/4;min-height:76px;border:0;padding:0;background:transparent;cursor:pointer;color:inherit}
-.finestra .dietro,.finestra .porta{position:absolute;inset:0;border-radius:8px;display:grid;place-items:center;align-content:center}
-.finestra .dietro{background:var(--acceso);border:2px solid var(--luce);color:var(--luce);box-shadow:inset 0 0 0 3px var(--acceso),inset 0 0 0 4px rgba(246,215,122,.5)}
-.finestra .dietro b{font-family:var(--insegna);font-size:2rem;line-height:1}
-.finestra .dietro small{font-size:.75rem;color:var(--avorio)}
-.finestra .porta{background:var(--fascia);border:2px solid var(--oro);box-shadow:inset 0 0 0 3px var(--fascia),inset 0 0 0 4px rgba(201,162,75,.4);transform-origin:left center;transition:transform .7s var(--ease);backface-visibility:hidden;-webkit-backface-visibility:hidden}
-.finestra .porta b{font-family:var(--insegna);font-size:1.25rem;color:var(--oro-t)}
-.finestra.chiusa .porta{border-style:dashed;box-shadow:none}
+.avvento{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:10px;perspective:700px;margin:0 0 6px}
+.finestra{perspective:600px;position:relative;aspect-ratio:3/4;min-height:78px;border:0;padding:0;background:transparent;cursor:pointer;color:inherit}
+.finestra .dietro,.finestra .porta{position:absolute;inset:0;border-radius:14px;display:grid;place-items:center;align-content:center;border:var(--filo)}
+.finestra .dietro{background:var(--menta);box-shadow:var(--ombra-s);color:var(--ink)}
+.finestra .dietro b{font-family:var(--insegna);font-size:2rem;font-weight:700;line-height:1}
+.finestra .dietro small{font-size:.75rem;font-weight:600}
+.finestra .porta{background:var(--rosa);box-shadow:var(--ombra-s);transform-origin:left center;transition:transform .8s var(--molla);backface-visibility:hidden;-webkit-backface-visibility:hidden}
+.finestra .porta b{font-family:var(--insegna);font-size:1.3rem;font-weight:700;color:var(--ink)}
+.finestra.chiusa .porta{background:#fff;border-style:dashed;box-shadow:none}
 .finestra.chiusa .porta b{color:var(--muto)}
-.finestra.aperta .porta{transform:rotateY(-112deg)}
-.finestra.pronta .porta{animation:invito 2.4s ease-in-out infinite}
-@keyframes invito{50%{transform:rotateY(-16deg)}}
-.avvento-info{margin:0 2px 8px}
+.finestra.aperta .porta{transform:rotateY(-118deg)}
+.finestra.pronta .porta{animation:invito 2.2s ease-in-out infinite}
+@keyframes invito{50%{transform:rotateY(-20deg)}}
+.avvento-info{margin:0 2px 8px;font-weight:600}
+.finestra.no{animation:no .32s var(--ease)}
+@keyframes no{25%{transform:translateX(-5px)}75%{transform:translateX(5px)}}
+.calmo .finestra.aperta .porta{transform:none;opacity:0}
+@media (prefers-reduced-motion:reduce){html:not(.forza) .finestra.aperta .porta{transform:none;opacity:0}html:not(.forza) .luci.accendi .lampada{opacity:1}}
+.calmo .luci.accendi .lampada{opacity:1}
 
-/* finestre di saluto */
-#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20}
-.popup{position:fixed;border:2px solid var(--oro);border-radius:10px;background:var(--fascia);color:var(--avorio);padding:0;width:min(92vw,400px);overflow:visible;box-shadow:inset 0 0 0 4px var(--fascia),inset 0 0 0 5px rgba(201,162,75,.4)}
-.popup::backdrop{background:rgba(4,22,17,.82)}
-.popup[open]{animation:apri .3s var(--ease)}
+/* finestre di saluto: saltano fuori con un giro 3D e lo sfondo si sfoca */
+#fx{position:fixed;inset:0;width:100%;height:100%;pointer-events:none;z-index:20;filter:drop-shadow(0 0 1px var(--ink)) saturate(1.4)}
+.popup{position:fixed;border:var(--filo);border-radius:26px;background:linear-gradient(160deg,#fff7e0 0%,var(--burro) 100%);color:var(--ink);padding:0;width:min(92vw,400px);overflow:visible;box-shadow:8px 8px 0 var(--ink);overscroll-behavior:contain}
+.popup::backdrop{background:rgba(27,27,27,.55);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+.popup[open]{animation:apri .55s var(--molla)}
 .popup[open]::backdrop{animation:vela .3s ease both}
 .popup.esce{animation:chiudi .16s ease-in forwards}
-@keyframes apri{from{opacity:0;transform:translateY(14px) scale(.95)}}
-@keyframes chiudi{to{opacity:0;transform:translateY(8px) scale(.97)}}
+@keyframes apri{from{opacity:0;transform:perspective(800px) translateY(50px) rotateX(-40deg) scale(.8)}}
+@keyframes chiudi{to{opacity:0;transform:perspective(800px) translateY(14px) rotateX(18deg) scale(.94)}}
 @keyframes vela{from{opacity:0}}
-.fxd{position:absolute;inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);pointer-events:none}
-#popup-luci .luci{position:absolute;left:12px;right:12px;top:4px;width:calc(100% - 24px);height:16px;cursor:default}
-.popup-corpo{position:relative;padding:32px 22px 20px;text-align:center}
-.popup-titolo{margin:0 0 10px;font:700 2rem/1.15 "Cinzel Decorative",Cinzel,Georgia,serif;letter-spacing:.03em;color:var(--oro-t);text-transform:none}
-.popup-corpo p{margin:0 0 16px}
+.fxd{position:absolute;inset:-80px;width:calc(100% + 160px);height:calc(100% + 160px);pointer-events:none;filter:drop-shadow(0 0 1px var(--ink)) saturate(1.4)}
+#popup-luci .luci{position:absolute;left:14px;right:14px;top:5px;width:calc(100% - 28px);height:16px;cursor:default}
+.popup-corpo{position:relative;padding:34px 22px 22px;text-align:center}
+.popup-titolo{margin:0 0 10px;font:700 2.1rem/1.1 var(--insegna);letter-spacing:.005em;color:var(--ink)}
+.popup-corpo p{margin:0 0 16px;font-weight:500}
 .popup .riga{justify-content:center}
-@media (prefers-reduced-motion:reduce){html:not(.forza) .finestra.aperta .porta{transform:none;opacity:0}html:not(.forza) .finestra .porta{animation:none!important}html:not(.forza) .dock .ind{transition:none}}
-.calmo .finestra.aperta .porta{transform:none;opacity:0}
-
-.finestra.no{animation:no .32s var(--ease)}
-@keyframes no{25%{transform:translateX(-4px)}75%{transform:translateX(4px)}}
-@media (prefers-reduced-motion:reduce){html:not(.forza) .luci.accendi .lampada{opacity:1}}
-.calmo .luci.accendi .lampada{opacity:1}
-.popup{overscroll-behavior:contain}
 html:has(dialog[open]){overflow:hidden}
+
+/* Idee: ogni scheda racconta lo stato del suo sondaggio con la forma, non solo con l'etichetta (classi st0..st3 da sondaggio.js).
+   In votazione: bordo blu e spia che pulsa. Approvata: verde con spunta. Respinta: righe rosse con una X. Fatta: dorata con il sigillo. */
+article.scheda{overflow:hidden;padding-right:44px}
+article.scheda.st0{box-shadow:inset 10px 0 0 var(--blu),var(--ombra);padding-left:26px}
+article.scheda.st0::after{content:"";position:absolute;top:16px;right:16px;width:14px;height:14px;border-radius:50%;background:var(--pom);border:2px solid var(--ink);animation:pulsa 1.6s ease-out infinite}
+@keyframes pulsa{0%{box-shadow:0 0 0 0 rgba(255,90,77,.65)}100%{box-shadow:0 0 0 14px rgba(255,90,77,0)}}
+article.scheda.acceso{background:linear-gradient(150deg,var(--menta),#e8f8d4);box-shadow:var(--ombra),0 0 0 4px rgba(67,211,145,.45)}
+article.scheda.acceso::before{content:"";position:absolute;top:0;right:0;width:58px;height:58px;background:linear-gradient(225deg,var(--ok) 50%,transparent 50%);pointer-events:none}
+article.scheda.acceso::after{content:"";position:absolute;top:10px;right:14px;width:9px;height:17px;border:solid #fff;border-width:0 4px 4px 0;transform:rotate(45deg);pointer-events:none}
+article.scheda.st2{background:repeating-linear-gradient(135deg,#ffe0db 0 10px,#ffd0c9 10px 20px);box-shadow:none;border-style:dashed}
+article.scheda.st2::before{content:"";position:absolute;top:0;right:0;width:58px;height:58px;background:linear-gradient(225deg,var(--allerta) 50%,transparent 50%);pointer-events:none}
+article.scheda.st2::after{content:"";position:absolute;top:8px;right:9px;width:20px;height:20px;pointer-events:none;background:linear-gradient(45deg,transparent 42%,#fff 42% 58%,transparent 58%),linear-gradient(-45deg,transparent 42%,#fff 42% 58%,transparent 58%)}
+article.scheda.st3{background:linear-gradient(150deg,#fff6d0,var(--burro))}
+article.scheda.st3::before{content:"";position:absolute;top:10px;right:10px;width:30px;height:30px;border-radius:50%;background:#fff;border:3px solid var(--ink);pointer-events:none}
+article.scheda.st3::after{content:"";position:absolute;top:15px;right:21px;width:7px;height:13px;border:solid var(--ink);border-width:0 3px 3px 0;transform:rotate(45deg);pointer-events:none}
+/* i tre voti: ogni risposta ha il suo colore, anche a riposo */
+.btn[data-az="i_vota"]::before,.chip[data-az="i_stato"]::before,.chip[data-az="i_fs"]::before{content:"";width:12px;height:12px;border-radius:50%;border:2px solid var(--ink);background:var(--c,#fff);flex:0 0 auto}
+.btn[data-az="i_vota"],.chip[data-az="i_stato"],.chip[data-az="i_fs"]{display:inline-flex;align-items:center;gap:8px}
+[data-v$="|1"][data-az="i_vota"]{--c:var(--si)}[data-v$="|-1"][data-az="i_vota"]{--c:var(--no)}[data-v$="|0"][data-az="i_vota"]{--c:var(--burro)}
+.btn[data-az="i_vota"][aria-pressed="true"]{background:var(--c);transform:translateY(-2px) scale(1.04);box-shadow:3px 4px 0 var(--ink)}
+.btn[data-az="i_vota"][aria-pressed="true"][disabled]{opacity:.8;transform:none;box-shadow:var(--ombra-s)}
+.chip[data-az="i_stato"][data-v$="|0"],.chip[data-az="i_fs"][data-v="0"]{--c:var(--blu)}
+.chip[data-az="i_stato"][data-v$="|1"],.chip[data-az="i_fs"][data-v="1"]{--c:var(--si)}
+.chip[data-az="i_stato"][data-v$="|2"],.chip[data-az="i_fs"][data-v="2"]{--c:var(--no)}
+.chip[data-az="i_stato"][data-v$="|3"],.chip[data-az="i_fs"][data-v="3"]{--c:var(--burro)}
+.chip[data-az="i_fs"][data-v="mie"]{--c:var(--pom)}
+.chip[data-az="i_stato"][aria-pressed="true"],.chip[data-az="i_fs"][aria-pressed="true"]{background:var(--c,var(--blu));color:#fff}
+.chip[data-az="i_stato"][data-v$="|1"][aria-pressed="true"],.chip[data-az="i_stato"][data-v$="|2"][aria-pressed="true"],.chip[data-az="i_stato"][data-v$="|3"][aria-pressed="true"],.chip[data-az="i_fs"]:is([data-v="1"],[data-v="2"],[data-v="3"],[data-v="mie"])[aria-pressed="true"]{color:var(--ink)}
+.chip[data-az="i_fs"][data-v="0"][aria-pressed="true"],.chip[data-az="i_stato"][data-v$="|0"][aria-pressed="true"]{color:#fff}
+.chip[data-az="i_fs"][data-v="0"][aria-pressed="true"]::before,.chip[data-az="i_stato"][data-v$="|0"][aria-pressed="true"]::before{background:#fff}
+
+/* ---- altri effetti (solo CSS, nessuno sposta i controlli cliccabili; il movimento ridotto li spegne tutti) ---- */
+/* 1. barra di avanzamento: una striscia colorata in cima si riempie mentre scorri la pagina */
+@supports (animation-timeline:scroll()){
+  html::before{content:"";position:fixed;left:0;top:0;right:0;height:6px;z-index:30;pointer-events:none;transform-origin:0 50%;transform:scaleX(0);border-bottom:2px solid var(--ink);
+    background:repeating-linear-gradient(90deg,var(--pom) 0 22px,var(--burro) 22px 44px,var(--blu) 44px 66px,var(--si) 66px 88px);animation:avanza linear both;animation-timeline:scroll(root block)}
+}
+@keyframes avanza{to{transform:scaleX(1)}}
+/* 2. riflesso che attraversa i pulsanti principali */
+.btn.pri,a.map.pri{position:relative;overflow:hidden}
+.btn.pri::after,a.map.pri::after{content:"";position:absolute;top:-25%;bottom:-25%;left:0;width:38%;pointer-events:none;background:linear-gradient(100deg,transparent,rgba(255,255,255,.7),transparent);transform:translateX(-170%) skewX(-18deg);animation:lampo 4.4s ease-in-out infinite}
+@keyframes lampo{0%,62%{transform:translateX(-170%) skewX(-18deg)}100%{transform:translateX(430%) skewX(-18deg)}}
+/* 3. i titoli si ribaltano in 3D quando cambia schermata */
+#vista.stag>.vt,#vista.stag>.fascia{transform-origin:50% 0;animation:titolo .65s var(--molla) both}
+@keyframes titolo{from{opacity:0;transform:perspective(700px) rotateX(-60deg) translateY(-16px)}}
+/* 4. l'icona della scheda attiva fa un saltino ogni tanto */
+.dock button[aria-current="page"] svg{animation:salto 3.4s ease-in-out 1.4s infinite}
+@keyframes salto{0%,84%,100%{transform:translateY(-2px) scale(1.12)}90%{transform:translateY(-9px) scale(1.22) rotate(-7deg)}95%{transform:translateY(-2px) scale(1.12) rotate(5deg)}}
+/* 5. il badge delle idee da votare batte come un cuore */
+.badge{animation:cuore 1.7s ease-in-out infinite}
+@keyframes cuore{0%,60%,100%{transform:scale(1)}15%{transform:scale(1.28)}30%{transform:scale(1)}45%{transform:scale(1.16)}}
+/* 6. sulla tappa in corso un anello si allarga come un'onda */
+.tl li.in-corso .scheda::after{content:"";position:absolute;left:-25px;top:17px;width:15px;height:15px;border-radius:50%;border:3px solid var(--pom);pointer-events:none;animation:onda-punto 2.2s ease-out infinite}
+@keyframes onda-punto{from{opacity:.95;transform:scale(1)}to{opacity:0;transform:scale(3.2)}}
+/* 7. il voto dato arriva come un timbro */
+.btn[data-az="i_vota"][aria-pressed="true"]:not([disabled]){animation:timbro .5s var(--molla)}
+@keyframes timbro{0%{opacity:0;transform:scale(1.8) rotate(-12deg)}55%{opacity:1}100%{transform:translateY(-2px) scale(1.04)}}
+/* 8. il filtro appena scelto scatta */
+.chip[aria-pressed="true"]{animation:scatto .42s var(--molla)}
+@keyframes scatto{0%{transform:scale(.78)}100%{transform:translateY(-2px)}}
+/* 9. sulle idee approvate il segno di spunta compare con un rimbalzo */
+article.scheda.acceso::after{animation:spunta .6s .15s var(--molla) both}
+@keyframes spunta{from{transform:rotate(45deg) scale(0)}to{transform:rotate(45deg) scale(1)}}
+/* 10. dentro i popup titolo, testo e pulsanti entrano uno dopo l'altro */
+.popup[open] .popup-titolo{animation:titolo-popup .8s .12s var(--molla) both}
+.popup[open] .popup-corpo p{animation:sale-popup .5s .3s var(--ease) both}
+.popup[open] .riga .btn{animation:sale-popup .5s var(--molla) both}
+.popup[open] .riga .btn:nth-child(1){animation-delay:.42s}.popup[open] .riga .btn:nth-child(2){animation-delay:.54s}
+@keyframes titolo-popup{from{opacity:0;transform:scale(.4) rotate(-6deg)}}
+@keyframes sale-popup{from{opacity:0;transform:translateY(14px) scale(.92)}}
+/* 11. il giorno di oggi manda un impulso */
+.giorno.oggi{animation:alone 2.4s ease-out infinite}
+@keyframes alone{from{box-shadow:var(--ombra-s),0 0 0 0 rgba(255,90,77,.7)}to{box-shadow:var(--ombra-s),0 0 0 12px rgba(255,90,77,0)}}

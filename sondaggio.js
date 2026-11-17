@@ -345,7 +345,7 @@ const Sond = (() => {
     const c = conta(p.id), mv = mioVoto(p.id), n = C.filter(x => x.proposal_id === p.id).length, tot = ((camp.nomi_ammessi || []).length) || PA.length;
     const esito = c.s > c.n ? "Sì in vantaggio" : c.n > c.s ? "No in vantaggio" : "Pari";
     const chiusa = p.stato !== 0;
-    return `<article class="scheda${p.stato === 1 ? " acceso" : ""}"><div class="nome">${esc(p.titolo)}<span class="et">${STATI[p.stato]}</span></div>
+    return `<article class="scheda${p.stato === 1 ? " acceso" : ""} st${p.stato}"><div class="nome">${esc(p.titolo)}<span class="et">${STATI[p.stato]}</span></div>
       <div class="desc">${esc(catNome(p.categoria))}. Di ${esc(nomeDi(p.participant_id))}${p.giorno ? `, giorno ${p.giorno}` : ""}. ${c.s} sì, ${c.n} no, ${c.d} non so su ${tot}. ${chiusa ? "" : esito + "."}</div>
       ${p.descrizione ? `<div class="desc">${esc(p.descrizione)}</div>` : ""}${ok(p.sito_url) ? `<div class="riga"><a class="map" target="_blank" rel="noopener" href="${esc(p.sito_url)}">Apri il link</a></div>` : ""}
       <div class="riga" role="group" aria-label="Il tuo voto">${[[1, "Sì"], [-1, "No"], [0, "Non so"]].map(([v, l]) => `<button class="btn${mv === v ? " pri" : ""}" data-az="i_vota" data-v="${p.id}|${v}" aria-pressed="${mv === v}"${chiusa ? " disabled" : ""}>${l}</button>`).join("")}</div>
