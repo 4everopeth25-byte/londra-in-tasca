@@ -11,8 +11,9 @@ const TRIP = {
   giorni: [
     {
       iso: "2026-12-23", breve: "23 mer", data: "Mercoledì 23 dicembre", titolo: "Arrivo a Stansted e prima sera", mezzo: "transit",
+      pianoB: "Stansted Express e metro sono al coperto fino a King's Cross. Con la pioggia cena vicino all'alloggio, senza spostarti.",
       tappe: [
-        { ora: "19:10", nome: "Volo Ryanair FR 793", desc: "Venezia Marco Polo → Londra Stansted, arrivo alle 20:25 (ora di Londra). Carta d'imbarco solo sull'app." },
+        { ora: "19:10", utc: "2026-12-23T18:10:00Z", durata: 135, nome: "Volo Ryanair FR 793", desc: "Venezia Marco Polo → Londra Stansted, arrivo alle 20:25 (ora di Londra). Carta d'imbarco solo sull'app." },
         { ora: "20:25", nome: "Arrivo a Stansted", desc: "Controllo passaporti e ETA, poi la stazione è a pochi minuti a piedi dal terminal.", q: "Stansted Airport Station" },
         { ora: "Poi", nome: "Stansted Express per Liverpool Street", desc: "Circa 48 minuti, pagamento con carta contactless. Bambini sotto i 5 anni gratis, da verificare.", costo: "circa £17-22 a testa, da verificare", q: "London Liverpool Street Station" },
         { ora: "Poi", nome: "Metro fino a King's Cross", desc: "Circle, Hammersmith & City o Metropolitan da Liverpool Street, circa 10 minuti.", q: "King's Cross St Pancras Station" },
@@ -24,6 +25,7 @@ const TRIP = {
     },
     {
       iso: "2026-12-24", breve: "24 gio", data: "Giovedì 24 dicembre", titolo: "Vigilia: Borough, St Paul's, Tower e Sky Garden", mezzo: "transit",
+      pianoB: "Con la pioggia salta la passeggiata sul lungofiume a Tower Bridge: dopo St Paul's vai a Leadenhall Market, che ha la copertura, e da lì allo Sky Garden, tutto al chiuso. Borough Market è in parte coperto.",
       tappe: [
         { ora: "09:30", nome: "Borough Market", desc: "Colazione e spuntino tra le bancarelle. La vigilia di solito chiude presto, verso le 15, da verificare. Da King's Cross con la Northern line fino a London Bridge.", q: "Borough Market" },
         { ora: "11:30", nome: "Cattedrale di St Paul", desc: "Si arriva a piedi dal Millennium Bridge. Dentro solo se è aperta ai turisti il 24, da verificare (il 25 è chiusa). Altrimenti si vede da fuori.", q: "St Paul's Cathedral" },
@@ -31,15 +33,16 @@ const TRIP = {
         { ora: "14:30", nome: "Tower of London e Tower Bridge, solo da fuori", desc: "La Tower è chiusa il 24, 25 e 26 dicembre. Passeggiata sul lungofiume con la luce del tardo pomeriggio.", q: "Tower Bridge" },
         { ora: "16:00", nome: "Leadenhall Market", desc: "Luci e decorazioni, a pochi minuti dallo Sky Garden. I negozi la vigilia chiudono presto, da verificare.", q: "Leadenhall Market" },
         { ora: "17:00", nome: "Sky Garden", desc: "20 Fenchurch Street. Ingresso gratuito con biglietto da prenotare in anticipo (vedi i promemoria). Arrivare 15 minuti prima.", costo: "gratis con prenotazione", q: "Sky Garden, 20 Fenchurch Street, London" },
-        { ora: "18:30", nome: "Taxi per Olympia", desc: "Si va in taxi, la metro della vigilia chiude prima. Contare 45-60 minuti con il traffico.", q: "Pillar Hall, 5 Olympia Way, London W14 0EY" },
+        { ora: "18:30", mezzo: "driving", nome: "Taxi per Olympia", desc: "Si va in taxi, la metro della vigilia chiude prima. Contare 45-60 minuti con il traffico.", q: "Pillar Hall, 5 Olympia Way, London W14 0EY" },
         { ora: "20:15", nome: "Cena da Idalia, Pillar Hall", desc: "5 Olympia Way, London W14 0EY. Tavolo per 5. Tolleranza di 15 minuti sul ritardo.", q: "Idalia, Pillar Hall, 5 Olympia Way, London W14 0EY" },
-        { ora: "22:30", nome: "Taxi di rientro", desc: "Ritorno all'alloggio.", q: "King's Cross Station", casa: true }
+        { ora: "22:30", mezzo: "driving", nome: "Taxi di rientro", desc: "Ritorno all'alloggio.", q: "King's Cross Station", casa: true }
       ],
       pub: { nome: "The Queen's Head", dove: "66 Acton Street", q: "The Queen's Head, 66 Acton Street, London", alt: "Con la bambina: una sosta con una cioccolata calda a Leadenhall Market prima dello Sky Garden." },
       nota: "Il giro va da sud a est senza tornare indietro. Il pub si fa dopo la cena, se la bambina regge. Per il 25 conviene fare la spesa oggi."
     },
     {
       iso: "2026-12-25", breve: "25 ven", data: "Venerdì 25 dicembre", titolo: "Natale a piedi: Abbey, Big Ben, Buckingham e Soho", mezzo: "walking",
+      pianoB: "Il 25 quasi tutto è chiuso: con la pioggia forte accorcia il giro e prendi un taxi tra una tappa e l'altra (di solito circolano, da verificare). L'Abbey, per la messa, è al coperto.",
       tappe: [
         { ora: "08:30", nome: "Partenza dall'alloggio", desc: "Si va a piedi, circa 5 km fino all'Abbey: oggi non circolano metro, treni e bus TfL. Un taxi fino all'Abbey toglie 5 km alla giornata.", q: "King's Cross Station", casa: true },
         { ora: "10:30", nome: "Westminster Abbey, messa cantata di Natale", desc: "Si ascoltano i cori. Servizio gratuito, di solito con prenotazione: da verificare sul sito dell'Abbey. La visita turistica il 25 di solito è chiusa. Arrivare verso le 10:00.", costo: "gratis", q: "Westminster Abbey" },
@@ -56,6 +59,7 @@ const TRIP = {
     },
     {
       iso: "2026-12-26", breve: "26 sab", data: "Sabato 26 dicembre", titolo: "Boxing Day: Harrods e Notting Hill", mezzo: "transit",
+      pianoB: "Harrods è tutto al coperto e ha ristoranti dentro: con la pioggia fermati lì e salta Notting Hill, oppure vai a Notting Hill solo per il pranzo.",
       tappe: [
         { ora: "09:00", nome: "Binario 9¾", desc: "Foto gratuita a King's Cross, a due passi dall'alloggio.", costo: "gratis", q: "Platform 9 3/4 King's Cross" },
         { ora: "10:15", nome: "Harrods", desc: "Knightsbridge, con la Piccadilly line da King's Cross. Orari del Boxing Day da verificare (negli anni scorsi aperto dalle 10 o dalle 11), saldi e code.", q: "Harrods, 87-135 Brompton Road, London SW1X 7XL" },
@@ -68,6 +72,7 @@ const TRIP = {
     },
     {
       iso: "2026-12-27", breve: "27 dom", data: "Domenica 27 dicembre", titolo: "Natural History Museum, Sunday roast e ritorno", mezzo: "transit",
+      pianoB: "Il Natural History Museum è al coperto e il Science Museum è accanto (orari del 27 da verificare). Il pranzo a Marylebone è al chiuso.",
       tappe: [
         { ora: "09:15", nome: "Check-out e deposito bagagli", desc: "", q: "King's Cross Station", casa: true },
         { ora: "10:00", nome: "Natural History Museum", desc: "Aperto il 27, dopo la chiusura del 24-26. Ingresso gratuito, prenotare lo slot se richiesto, da verificare. Piccadilly line da King's Cross a South Kensington. Se resta tempo, il Science Museum è accanto.", costo: "gratis", q: "Natural History Museum, Cromwell Road, London SW7 5BD" },
@@ -75,24 +80,24 @@ const TRIP = {
         { ora: "14:30", nome: "Baker Street e statua di Sherlock Holmes", desc: "Facoltativa: facciata del 221B, a pochi minuti dal pranzo.", q: "Sherlock Holmes statue Baker Street" },
         { ora: "15:30", nome: "Ritiro bagagli", desc: "Da Baker Street con la Metropolitan o Hammersmith & City fino a King's Cross.", q: "King's Cross Station", casa: true },
         { ora: "16:30", nome: "Treno da St Pancras per Luton", desc: "Il ritorno parte da Luton, non da Stansted.", q: "St Pancras International" },
-        { ora: "20:55", nome: "Volo Ryanair FR 761", desc: "Luton → Venezia, arrivo 00:05 del 28/12. Carta d'imbarco solo sull'app." }
+        { ora: "20:55", durata: 190, nome: "Volo Ryanair FR 761", desc: "Luton → Venezia, arrivo 00:05 del 28/12. Carta d'imbarco solo sull'app." }
       ],
       pub: null,
       nota: "Nessun pub la sera. Il Natural History Museum è aperto solo dal 27: per questo sta qui. Pixar e Balloon Museum sono stati tolti."
     }
   ],
   promemoria: [
-    { id: "eta", t: "Richiedere l'ETA per tutti e 5", d: "Costo da verificare su gov.uk/eta (le fonti dicono £16 o £20 a persona)." },
+    { id: "eta", t: "Richiedere l'ETA per tutti e 5", d: "Costo da verificare su gov.uk/eta (le fonti dicono £16 o £20 a persona). La data è indicativa: la risposta può richiedere alcuni giorni lavorativi.", data: "2026-12-15", etichetta: "entro il 15 dic" },
     { id: "wizz", t: "Chiedere a Wizz Air il rimborso del vecchio volo", d: "È stato spostato al 21/12 e non lo usate più. Le opzioni sono nella mail di Wizz Air." },
-    { id: "skygarden", t: "Prenotare lo Sky Garden (24/12 alle 17:00)", d: "Ingresso gratuito, biglietti rilasciati circa 3 settimane prima, di solito il lunedì mattina. Controllare su skygarden.london dal 30 novembre. Un tavolo al ristorante vale come ingresso." },
+    { id: "skygarden", t: "Prenotare lo Sky Garden (24/12 alle 17:00)", d: "Ingresso gratuito, biglietti rilasciati circa 3 settimane prima, di solito il lunedì mattina. Controllare su skygarden.london dal 30 novembre. Un tavolo al ristorante vale come ingresso.", data: "2026-11-30", etichetta: "dal 30 nov" },
     { id: "stpaul", t: "Controllare se St Paul's è aperta alla visita il 24" },
     { id: "abbey", t: "Prenotare la messa cantata di Natale a Westminster Abbey (25/12, 10:30)", d: "Verificare sul sito dell'Abbey se serve la prenotazione." },
-    { id: "harrods", t: "Controllare gli orari di Harrods del 26" },
+    { id: "harrods", t: "Controllare gli orari di Harrods del 26", data: "2026-12-20", etichetta: "entro il 20 dic" },
     { id: "nhm", t: "Natural History Museum (27/12): prenotare lo slot gratuito se richiesto" },
     { id: "roast", t: "Prenotare il Sunday roast (27/12)" },
-    { id: "idalia", t: "Correggere il nome della prenotazione da Idalia", d: "Risulta registrato con un refuso." },
+    { id: "idalia", t: "Correggere il nome della prenotazione da Idalia", d: "Risulta registrato con un refuso.", data: "2026-12-20", etichetta: "entro il 20 dic" },
     { id: "jacuzzi", t: "Cancellare l'avviso SevenRooms di Jacuzzi", d: "Non è una prenotazione." },
-    { id: "spesa", t: "Fare la spesa il 24 per il giorno di Natale" }
+    { id: "spesa", t: "Fare la spesa il 24 per il giorno di Natale", data: "2026-12-24", etichetta: "il 24 dic" }
   ],
   daVerificare: [
     "Orari di chiusura della metro la vigilia e servizio del 26 (TfL li pubblica a fine novembre)",
@@ -105,6 +110,14 @@ const TRIP = {
     "Bagaglio a mano sul volo Ryanair di andata: misure consentite, la mail non le indica",
     "Stime dei taxi",
     "Regole sui bambini nei pub: molti non li accettano dopo le 19-21"
+  ],
+  /* indirizzi da mostrare al tassista: stessa grafia di Google Maps, nessun dato personale */
+  mostra: [
+    { id: "casa", nome: "Alloggio", righe: ["77 Caledonian Road", "Islington", "London N1 9BT"] },
+    { id: "idalia", nome: "Idalia, cena del 24", righe: ["Pillar Hall", "5 Olympia Way", "London W14 0EY"] },
+    { id: "kx", nome: "King's Cross", righe: ["King's Cross Station", "London"] },
+    { id: "ltn", nome: "Aeroporto di Luton", righe: ["London Luton Airport", "Departures"] },
+    { id: "stn", nome: "Aeroporto di Stansted", righe: ["London Stansted Airport", "Departures"] }
   ],
   profili: { uomo: "Uomo", donna: "Donna", bambina: "Bambina" },
   /* Lista valigia: per = profili a cui si applica, q = quantità calcolata sui giorni (g) e sulle notti (n), d = nota (testo o funzione) */

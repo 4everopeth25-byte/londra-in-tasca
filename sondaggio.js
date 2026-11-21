@@ -15,7 +15,13 @@ const Sond = (() => {
   const libero = () => { const a = document.activeElement; return !a || !a.closest || !a.closest("form,textarea,input,select"); };
   const traduci = e => { const m = (e && e.message) || "Errore"; return e && e.code === "42501" ? "Operazione non consentita in questa fase o per questo account." : e && e.code === "23505" ? "Esiste già una proposta con questo titolo." : /Failed to fetch|NetworkError|Load failed/i.test(m) ? "Connessione assente: riprova tra poco." : m; };
   const q = async p => { const r = await p; if (r.error) throw r.error; return r.data; };
-  const dopo = () => { if (typeof aggiornaBadge === "function") aggiornaBadge(); if ((visibile() || (typeof tab !== "undefined" && tab === "oggi")) && libero()) render(); };
+  let firmaG = "";
+  const dopo = () => {
+    if (typeof aggiornaBadge === "function") aggiornaBadge();
+    const f = JSON.stringify(P.filter(p => p.stato === 1 && p.giorno).map(p => [p.id, p.giorno, p.titolo])), cambiata = f !== firmaG; firmaG = f;
+    const t = typeof tab !== "undefined" ? tab : "";
+    if ((t === "idee" || t === "oggi" || (t === "viaggio" && cambiata)) && libero()) render();
+  };
   const cella = d => new Date(d).toLocaleString("it-IT", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 
   function crea() {
@@ -203,7 +209,7 @@ const Sond = (() => {
   });
   /* idea precompilata da «Condividi» di un'altra app (TikTok, Instagram, Maps): il modulo si apre già scritto */
   const precompila = b => { I.bozza = { titolo: b.testo || "", sito_url: b.link || "", descrizione: b.nota || "" }; I.nuova = true; };
-  return { vistaIdee, banner, sveglia, precompila, daVotare: () => (me ? P.filter(daVotareI).length : 0), filtraMie: () => { I.s = "mie"; } };
+  return { vistaIdee, banner, sveglia, precompila, ideeGiorno: n => P.filter(p => p.stato === 1 && p.giorno === n).map(p => ({ titolo: p.titolo, categoria: catNome(p.categoria), descrizione: p.descrizione || "" })), daVotare: () => (me ? P.filter(daVotareI).length : 0), filtraMie: () => { I.s = "mie"; } };
 })();
 
 if (typeof condiviso !== "undefined" && condiviso) Sond.precompila(condiviso);

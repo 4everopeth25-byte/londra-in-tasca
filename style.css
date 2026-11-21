@@ -397,3 +397,7 @@ h2,h3{font-weight:700;font-size:1.5rem}
 .codice{background:var(--burro)}
 
 .elenco{border-radius:18px}.msg{border-radius:16px}.finestra .dietro,.finestra .porta{border-radius:16px}.codice{border-radius:12px}
+
+/* Mostra al tassista: l'indirizzo a caratteri grandi nella finestra di saluto */
+.popup[data-grande="1"] .popup-titolo{font-size:1.5rem}
+.popup[data-grande="1"] #popup-testo{font-size:2.1rem;font-weight:700;line-height:1.25;white-space:pre-line;margin:6px 0 20px}

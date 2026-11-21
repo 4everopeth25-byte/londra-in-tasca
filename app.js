@@ -44,7 +44,9 @@ const ICONE = {
   bag: '<path d="M6 8h12l1 12H5z"/><path d="M9 8V6a3 3 0 0 1 6 0v2"/>',
   swap: '<path d="M4 8h14l-3-3M20 16H6l3 3"/>',
   chev: '<path d="m9 5 7 7-7 7"/>',
-  key: '<circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3"/>'
+  key: '<circle cx="8" cy="12" r="4"/><path d="M12 12h9M18 12v3"/>',
+  cal: '<rect x="4" y="5" width="16" height="15" rx="3"/><path d="M4 10h16M9 3v4M15 3v4"/>',
+  audio: '<path d="M4 9v6h4l5 4V5L8 9z"/><path d="M16 9a4 4 0 0 1 0 6M18.5 6.5a8 8 0 0 1 0 11"/>'
 };
 const ic = (n, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONE[n]}</svg>`;
 
@@ -155,6 +157,49 @@ function aggiornaBadge() {
   if (bt) { if (dv) bt.setAttribute("aria-label", `Idee, ${dv} da votare`); else bt.removeAttribute("aria-label"); }
 }
 
+/* ---------- luce e meteo ---------- */
+/* alba e tramonto di Londra con l'algoritmo dell'Almanacco (precisione di un paio di minuti), calcolati sul telefono: funzionano senza rete.
+   A dicembre Londra è sull'ora di Greenwich, quindi l'ora universale coincide con quella locale. */
+function ore(iso, sorge) {
+  const R = Math.PI / 180, [y, m, d] = iso.split("-").map(Number), lat = 51.5074, lon = -0.1278;
+  const N = Math.floor(275 * m / 9) - (m > 2 ? 1 : 2) * Math.floor((m + 9) / 12) + d - 30 + (y % 4 === 0 && m > 2 ? 1 : 0);
+  const lh = lon / 15, t = N + ((sorge ? 6 : 18) - lh) / 24, M = 0.9856 * t - 3.289;
+  const L = ((M + 1.916 * Math.sin(M * R) + 0.02 * Math.sin(2 * M * R) + 282.634) % 360 + 360) % 360;
+  let RA = ((Math.atan(0.91764 * Math.tan(L * R)) / R) % 360 + 360) % 360; RA = (RA + (Math.floor(L / 90) * 90 - Math.floor(RA / 90) * 90)) / 15;
+  const sd = 0.39782 * Math.sin(L * R), cd = Math.cos(Math.asin(sd)), ch = (Math.cos(90.833 * R) - sd * Math.sin(lat * R)) / (cd * Math.cos(lat * R));
+  if (ch > 1 || ch < -1) return null;
+  const H = (sorge ? 360 - Math.acos(ch) / R : Math.acos(ch) / R) / 15, T = H + RA - 0.06571 * t - 6.622;
+  return (((T - lh) % 24) + 24) % 24 * 60;
+}
+const hhmm = min => `${String(Math.floor(min / 60)).padStart(2, "0")}:${String(Math.round(min % 60)).padStart(2, "0")}`.replace(/^(\d\d):60$/, (_, h) => `${String(+h + 1).padStart(2, "0")}:00`);
+const luceGiorno = iso => { const a = ore(iso, true), b = ore(iso, false); return a != null && b != null ? [a, b] : null; };
+const dataBreve = iso => new Date(iso + "T12:00:00").toLocaleDateString("it-IT", { day: "numeric", month: "long" });
+const METEO_CH = "lit-meteo";
+let meteo = (() => { const m = leggi(METEO_CH); return m && typeof m === "object" && m.g && typeof m.g === "object" ? m : { ts: 0, g: {} }; })();
+const codiceMeteo = c => (c === 0 ? "sereno" : c <= 2 ? "poco nuvoloso" : c === 3 ? "coperto" : c <= 48 ? "nebbia" : c <= 57 ? "pioviggine" : c <= 67 ? "pioggia" : c <= 77 ? "neve" : c <= 82 ? "rovesci" : c <= 86 ? "rovesci di neve" : "temporale");
+async function caricaMeteo() {
+  if (!navigator.onLine || Date.now() - meteo.ts < 3 * 3600e3) return;
+  const a = TRIP.giorni[0].iso, b = TRIP.giorni[TRIP.giorni.length - 1].iso, lim = oggiIso(new Date(Date.now() + 15 * 864e5)), fine = lim < b ? lim : b;
+  if (a > fine) return;
+  try {
+    const r = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=51.5074&longitude=-0.1278&daily=weather_code,temperature_2m_max,temperature_2m_min,precipitation_probability_max&timezone=Europe%2FLondon&start_date=${a}&end_date=${fine}`, { cache: "no-store" });
+    const j = await r.json(), dd = j && j.daily; if (!dd || !Array.isArray(dd.time)) throw new Error("risposta non valida");
+    const g = {}; dd.time.forEach((t, i) => { if (Number.isFinite(dd.temperature_2m_max[i]) && Number.isFinite(dd.temperature_2m_min[i])) g[t] = { c: dd.weather_code[i], min: Math.round(dd.temperature_2m_min[i]), max: Math.round(dd.temperature_2m_max[i]), p: Math.round(dd.precipitation_probability_max[i] || 0) }; });
+    meteo = { ts: Date.now(), g }; try { localStorage.setItem(METEO_CH, JSON.stringify(meteo)); } catch { /* ok */ }
+    if ((tab === "viaggio" && vsub === "itin" || tab === "oggi") && libero()) render();
+  } catch { /* resta l'ultimo salvato */ }
+}
+const libero = () => { const a = document.activeElement; return !a || !a.closest || !a.closest("form,textarea,input,select"); };
+function cartaMeteo(d) {
+  const m = meteo.g[d.iso], l = luceGiorno(d.iso), da = dataBreve(oggiIso(new Date(new Date(d.iso + "T12:00:00").getTime() - 15 * 864e5)));
+  const testo = m ? `${codiceMeteo(m.c)[0].toUpperCase() + codiceMeteo(m.c).slice(1)}, da ${m.min} a ${m.max} °C, probabilità di pioggia ${m.p}%.${m.p >= 40 ? " Porta l'ombrello." : ""}` : `Previsioni disponibili ${/^(8|11)\b/.test(da) ? "dall'" : "dal "}${da}, con la rete attiva.`;
+  return `<div class="scheda meteo"><div class="nome">Meteo e luce</div><div class="desc">${esc(testo)}</div>${l ? `<div class="desc">Alba ${hhmm(l[0])}, tramonto ${hhmm(l[1])}.</div>` : ""}${m && meteo.ts ? `<div class="desc piccolo">Aggiornato ${esc(new Date(meteo.ts).toLocaleString("it-IT", { day: "numeric", month: "short", hour: "2-digit", minute: "2-digit" }))}.</div>` : ""}</div>`;
+}
+
+/* ---------- promemoria con scadenza ---------- */
+const promemoriaOrdinati = () => [...TRIP.promemoria].sort((a, b) => ((a.data || "9999") < (b.data || "9999") ? -1 : (a.data || "9999") > (b.data || "9999") ? 1 : 0));
+const presto = () => { const lim = oggiIso(new Date(Date.now() + 7 * 864e5)); return promemoriaOrdinati().filter(p => p.data && p.data <= lim && !S.fatti["p_" + p.id]).slice(0, 3); };
+
 /* ---------- valigia ---------- */
 const persone = () => [...gruppo(), (S.riserv && S.riserv.bambina) || "Bambina"];
 const profiloDi = p => (p === persone()[persone().length - 1] ? "bambina" : (S.profili[p] || ""));
@@ -197,16 +242,17 @@ function vistaOggi() {
   const dv = daVotare(), tot = saldi().tot, vs = S.valP ? statoValigia(S.valP) : null;
   const voce = (icona, t, sub, v, az, extra = "") => `<button class="voce" data-az="vai" data-v="${az}">${ic(icona, 22)}<span class="t"><b>${t}</b><span>${sub}</span></span><span class="v${extra}">${v}</span></button>`;
   return `<header class="fascia luminosa">${luci(prima)}<h1>${esc(titolo)}</h1><p>${esc(sotto)}</p></header>
-    ${bannerSync()}${inCorso}${prossima}
+    ${bannerSync()}${inCorso}${prossima}${st ? cartaMeteo(giorno) : ""}
     <h2 class="h-sez">Le finestre del viaggio</h2>
     ${avvento()}
+    ${presto().length ? `<h2 class="h-sez">Da fare presto</h2><div class="elenco">${presto().map(p => voce("cal", esc(p.t), esc(p.etichetta) + (p.data < oggiIso() ? ", scaduta" : ""), "", "viaggio:prenot")).join("")}</div>` : ""}
     <h2 class="h-sez">Da decidere</h2>
     <div class="elenco">${voce("bulb", "Idee da votare", dv ? "Tocca per votare" : "Nessuna in attesa", dv, "idee:mie", dv ? " allerta" : "")}</div>
     <h2 class="h-sez">In borsa</h2>
     <div class="elenco">
       ${voce("plane", "Voli e prenotazioni", esc(TRIP.sintesiVoli), "", "viaggio:prenot")}
       ${voce("bag", "Valigia", vs && vs.tot ? `${esc(S.valP)}: ${vs.fatte} su ${vs.tot}` : "Scegli chi sei per la tua lista", "", "altro:valigia")}
-      ${voce("key", "Frasi utili in inglese", "Per ristoranti, taxi e metro", "", "altro:frasi")}
+      ${voce("key", "Frasi utili in inglese", "Taxi, ristoranti, metro e indirizzi da mostrare", "", "altro:frasi")}
       <a class="voce" href="tel:999">${ic("phone", 22)}<span class="t"><b>Emergenze nel Regno Unito</b><span>Polizia, ambulanza, pompieri</span></span><span class="v">999</span></a>
     </div>
     <h2 class="h-sez">Conti</h2>
@@ -226,12 +272,15 @@ function vistaItinerario(chips) {
   const rail = TRIP.giorni.map((x, i) => `<button class="giorno${oggi && oggi.g === i ? " oggi" : ""}" data-az="giorno" data-v="${i}" aria-pressed="${i === g}" aria-label="Giorno ${i + 1}, ${esc(x.data)}${oggi && oggi.g === i ? ", oggi" : ""}"><b>${x.iso.slice(8)}</b><small>${esc(x.breve.split(" ")[1])}</small></button>`).join("");
   const tappe = d.tappe.map((t, i) => {
     const nk = `${g}-${i}`, nt = (S.note[nk] && S.note[nk].t) || "", ha = orario(t.ora) != null;
+    const prec = t.q ? d.tappe.slice(0, i).reverse().find(x => x.q) : null, come = prec && qt(prec) !== qt(t) ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(prec), qt(t)], t.mezzo || d.mezzo)}">${ic("compass", 18)}Come arrivare<span class="vh"> a ${esc(t.nome)} da ${esc(prec.nome)}, si apre in una nuova scheda</span></a>` : "";
     return `<li data-i="${i}"><div class="quando${ha ? "" : " testo"}">${esc(t.ora || "")}</div><div class="scheda"><div class="nome">${esc(t.nome)}</div>
     ${t.desc ? `<div class="desc">${esc(t.desc)}</div>` : ""}
-    <div class="riga">${t.costo ? `<span class="pill">${esc(t.costo)}</span>` : ""}${t.q ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(t)], d.mezzo)}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(t.nome)}, si apre in una nuova scheda</span></a>` : ""}</div>
+    <div class="riga">${t.costo ? `<span class="pill">${esc(t.costo)}</span>` : ""}${t.q ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(t)], d.mezzo)}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(t.nome)}, si apre in una nuova scheda</span></a>` : ""}${come}</div>
     <details class="nota-t"${nt ? " open" : ""}><summary>${nt ? "Nota personale" : "Aggiungi nota"}</summary>
     <textarea rows="2" maxlength="500" data-chg="nota" data-v="${nk}" aria-label="Nota personale per ${esc(t.nome)}" placeholder="Solo sul tuo telefono">${esc(nt)}</textarea></details></div></li>`;
   }).join("");
+  const approvate = typeof Sond !== "undefined" ? Sond.ideeGiorno(g + 1) : [];
+  const idee = approvate.length ? `<h2 class="h-sez">Idee approvate per questo giorno</h2>${approvate.map(p => `<div class="scheda"><div class="nome">${esc(p.titolo)}</div><div class="desc">${esc(p.categoria)}${p.descrizione ? `. ${esc(p.descrizione)}` : ""}</div><div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([p.titolo], d.mezzo)}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(p.titolo)}, si apre in una nuova scheda</span></a></div></div>`).join("")}` : "";
   const percorso = mapsUrl(d.tappe.map(qt), d.mezzo);
   const pub = d.pub ? `<div class="scheda pub"><div class="nome">Il pub del giorno: ${esc(d.pub.nome)}</div><div class="desc">${esc(d.pub.dove)}</div><div class="desc" style="margin-top:6px">${esc(d.pub.alt)}</div>
     <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([d.pub.q], d.mezzo)}">${ic("pin", 18)}Mappa del pub<span class="vh">, si apre in una nuova scheda</span></a></div></div>` : "";
@@ -240,12 +289,16 @@ function vistaItinerario(chips) {
     <div class="guida" aria-hidden="true"><span id="g-a">${esc(eti(pri))}</span><span id="g-b">${esc(eti(ult))}</span></div>${chips}${avviso()}
     <div class="rail" role="group" aria-label="Giorni del viaggio">${rail}</div>
     <div id="adesso" hidden></div>
+    ${cartaMeteo(d)}
     <ol class="tl">${tappe}</ol>
+    ${idee}
+    ${d.pianoB ? `<details class="scheda nuova"><summary>Piano B se piove</summary><div class="desc">${esc(d.pianoB)}</div></details>` : ""}
     ${percorso ? `<p><a class="map pri" target="_blank" rel="noopener" href="${percorso}">${ic("compass", 18)}Percorso del giorno su Google Maps<span class="vh">, si apre in una nuova scheda</span></a></p>` : ""}
+    <div class="riga"><button class="btn" data-az="ics" data-v="giorno">${ic("cal", 18)}Aggiungi il giorno al calendario</button><button class="btn" data-az="ics" data-v="tutto">Tutto il viaggio e le scadenze</button></div>
     ${pub}${d.nota ? `<div class="scheda"><div class="desc">${esc(d.nota)}</div></div>` : ""}`;
 }
-function casella(id, t, d) {
-  return `<label class="c${S.fatti[id] ? " fatto" : ""}"><input type="checkbox" data-chg="fatto" data-v="${id}"${S.fatti[id] ? " checked" : ""}><span><b>${esc(t)}</b>${d ? `<br><small class="mute">${esc(d)}</small>` : ""}</span></label>`;
+function casella(id, t, d, tag) {
+  return `<label class="c${S.fatti[id] ? " fatto" : ""}"><input type="checkbox" data-chg="fatto" data-v="${id}"${S.fatti[id] ? " checked" : ""}><span><b>${esc(t)}</b>${tag ? ` <span class="pill">${esc(tag)}</span>` : ""}${d ? `<br><small class="mute">${esc(d)}</small>` : ""}</span></label>`;
 }
 function biglietto(da, a, nomeDa, nomeA, titolo, dettaglio, codice) {
   return `<div class="biglietto"><div class="tratta"><div><b>${da}</b><small>${nomeDa}</small></div>${ic("plane", 28)}<div style="text-align:right"><b>${a}</b><small>${nomeA}</small></div></div>
@@ -258,11 +311,11 @@ function vistaPrenot() {
     ${biglietto("LTN", "VCE", "Londra Luton", "Venezia Marco Polo", "Ritorno, Ryanair FR 761", "Domenica 27/12, partenza 20:55, arrivo 00:05 del 28/12. Carta d'imbarco solo sull'app.", r.voli && r.voli.ritorno)}
     <div class="scheda"><div class="nome">Cena della vigilia da Idalia</div><div class="desc">Pillar Hall, 5 Olympia Way, London W14 0EY. Giovedì 24/12 alle 20:15, tavolo per 5, tolleranza di 15 minuti.</div>
       ${r.idalia ? `<div class="riga" style="justify-content:space-between"><span class="codice">N. ${esc(r.idalia.conferma)}</span><button class="btn" data-az="copia" data-v="${esc(r.idalia.conferma)}">${ic("copy", 18)}Copia<span class="vh"> il numero OpenTable</span></button></div><div class="mute piccolo">Nome registrato: ${esc(r.idalia.nome)}</div>` : `<div class="mute piccolo" style="margin-top:8px">Conferma nel file riservato.</div>`}
-      <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl(["Idalia, Pillar Hall, 5 Olympia Way, London W14 0EY"], "transit")}">${ic("pin", 18)}Mappa<span class="vh">, si apre in una nuova scheda</span></a></div></div>
+      <div class="riga"><button class="btn" data-az="mostra" data-v="idalia">Mostra al tassista</button><a class="map" target="_blank" rel="noopener" href="${mapsUrl(["Idalia, Pillar Hall, 5 Olympia Way, London W14 0EY"], "transit")}">${ic("pin", 18)}Mappa<span class="vh">, si apre in una nuova scheda</span></a></div></div>
     <div class="scheda"><div class="nome">Alloggio</div><div class="desc">${esc(TRIP.alloggio.testo)}</div>
-      <div class="riga"><button class="btn" data-az="copia" data-v="${esc(TRIP.alloggio.testo)}">${ic("copy", 18)}Copia l'indirizzo</button><a class="map" target="_blank" rel="noopener" href="${mapsUrl([casaQ()], "transit")}">${ic("pin", 18)}Mappa<span class="vh">, si apre in una nuova scheda</span></a></div></div>
+      <div class="riga"><button class="btn" data-az="mostra" data-v="casa">Mostra al tassista</button><button class="btn" data-az="copia" data-v="${esc(TRIP.alloggio.testo)}">${ic("copy", 18)}Copia l'indirizzo</button><a class="map" target="_blank" rel="noopener" href="${mapsUrl([casaQ()], "transit")}">${ic("pin", 18)}Mappa<span class="vh">, si apre in una nuova scheda</span></a></div></div>
     ${r.bambina ? `<div class="scheda"><div class="nome">Gruppo</div><div class="desc">${esc(gruppo().join(", "))} e ${esc(r.bambina)} (4 anni).</div></div>` : ""}
-    <h2 class="h-sez">Da fare</h2><div class="scheda">${TRIP.promemoria.map(p => casella("p_" + p.id, p.t, p.d)).join("")}</div>
+    <h2 class="h-sez">Da fare</h2><div class="scheda">${promemoriaOrdinati().map(p => casella("p_" + p.id, p.t, p.d, p.etichetta)).join("")}</div>
     <h2 class="h-sez">Da verificare</h2><div class="scheda"><ul class="lista">${TRIP.daVerificare.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>
     <h2 class="h-sez">Info utili</h2><div class="scheda"><ul class="lista">${TRIP.info.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
 }
@@ -363,7 +416,9 @@ function vistaCambio() {
     <div><b>Sterline</b>${[1, 5, 10, 20, 50, 100].map(x => `<div class="num">£${x} = ${eur(x * c)}</div>`).join("")}</div>
     <div><b>Euro</b>${[10, 20, 50, 100].map(x => `<div class="num">€${x} = ${gbp(x / c)}</div>`).join("")}</div></div></div>` : ""}`;
 }
-const vistaFrasi = () => `<div class="scheda">${TRIP.frasi.map(([it, en]) => `<div class="frase"><div class="mute">${esc(it)}</div><div class="nome" lang="en-GB">${esc(en)}</div></div>`).join("")}</div>
+const vistaFrasi = () => `<div class="scheda"><div class="nome">Mostra al tassista</div><div class="desc">Schermo con l'indirizzo in grande, in inglese. Funziona anche senza rete.</div>
+  <div class="chips avvolgi" role="group" aria-label="Dove andare" style="margin-top:8px">${TRIP.mostra.map(m => `<button class="chip" data-az="mostra" data-v="${m.id}">${esc(m.nome)}</button>`).join("")}</div></div>
+  <div class="scheda">${TRIP.frasi.map(([it, en], i) => `<div class="frase"><div class="mute">${esc(it)}</div><div class="riga" style="margin:0;justify-content:space-between;flex-wrap:nowrap"><div class="nome" lang="en-GB">${esc(en)}</div>${"speechSynthesis" in window ? `<button class="btn tondo" data-az="parla" data-v="${i}" aria-label="Ascolta in inglese: ${esc(en)}">${ic("audio", 18)}</button>` : ""}</div></div>`).join("")}</div>
   <h2 class="h-sez">Numeri utili nel Regno Unito</h2><div class="scheda">${TRIP.emergenze.map(e => `<div class="frase"><a class="map" href="tel:${e.n}">${ic("phone", 18)}Chiama ${e.n}</a><div class="desc">${esc(e.t)}</div></div>`).join("")}</div>
   <p class="mute">Ambasciata e consolato d'Italia: cerca i recapiti aggiornati su dovesiamonelmondo.esteri.it.</p>`;
 function vistaSistema() {
@@ -418,11 +473,11 @@ function scintille(x, y, n = 14) {
   })(prec);
 }
 /* ---------- finestre di saluto (dialog) ---------- */
-function popup({ titolo, testo, azione, etichetta, festa, apertura }) {
+function popup({ titolo, testo, azione, etichetta, festa, apertura, grande }) {
   const d = $("#popup"); if (!d || d.open || !d.showModal) return false;
   $("#popup-luci").innerHTML = luci(false); $("#popup-titolo").textContent = titolo; $("#popup-testo").textContent = testo;
   $("#popup-azioni").innerHTML = (azione ? `<button class="btn pri" id="popup-ok" type="button">${esc(etichetta || "Apri")}</button>` : "") + `<button class="btn" id="popup-chiudi" type="button">Chiudi</button>`;
-  d.dataset.festa = festa ? "1" : ""; d.showModal(); if (apertura) apertura();
+  d.dataset.festa = festa ? "1" : ""; d.dataset.grande = grande ? "1" : ""; d.showModal(); if (apertura) apertura();
   if (festa) setTimeout(() => scintille(innerWidth / 2, innerHeight * .34, 40), 280);
   $("#popup-chiudi").onclick = () => chiudiPopup(); const ok = $("#popup-ok"); if (ok) ok.onclick = () => chiudiPopup(azione);
   return true;
@@ -574,6 +629,28 @@ const pacchetto = () => ({ app: "londra-in-tasca", v: 3, autore: S.me, esportato
 const aB64 = s => { let r = ""; new TextEncoder().encode(s).forEach(x => { r += String.fromCharCode(x); }); return btoa(r); };
 const daB64 = s => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
 const messaggio = () => `Londra in tasca: le mie spese. Incollalo in Altro, Sistema.\nLIT1:${aB64(JSON.stringify(pacchetto()))}`;
+/* calendario: a dicembre Londra è sull'ora di Greenwich, quindi l'orario scritto vale come UTC; il volo di andata parte dall'Italia e ha l'orario UTC scritto a parte */
+const icsTesto = t => String(t ?? "").replace(/\\/g, "\\\\").replace(/;/g, "\\;").replace(/,/g, "\\,").replace(/\r?\n/g, "\\n");
+const icsRiga = r => { const o = []; while (r.length > 73) { o.push(r.slice(0, 73)); r = " " + r.slice(73); } o.push(r); return o.join("\r\n"); };
+const icsData = d => d.toISOString().replace(/[-:]/g, "").replace(/\.\d{3}/, "");
+function eventiGiorno(d) {
+  const tt = d.tappe.map((t, i) => ({ t, i, o: orario(t.ora) })).filter(x => x.o != null);
+  return tt.map((x, k) => {
+    const ini = x.t.utc ? new Date(x.t.utc) : new Date(`${d.iso}T${String(Math.floor(x.o / 60)).padStart(2, "0")}:${String(x.o % 60).padStart(2, "0")}:00Z`);
+    const min = x.t.durata || (tt[k + 1] ? Math.min(180, Math.max(30, tt[k + 1].o - x.o)) : 60);
+    return { uid: `lit-${d.iso}-${x.i}@londra-in-tasca`, ini, fine: new Date(ini.getTime() + min * 60000), titolo: x.t.nome, luogo: qt(x.t) || "", desc: [x.t.desc, x.t.costo].filter(Boolean).join(" ") };
+  });
+}
+function costruisciIcs(eventi, scadenze) {
+  const adesso = icsData(new Date()), r = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//Londra in tasca//IT", "CALSCALE:GREGORIAN", "METHOD:PUBLISH", "X-WR-CALNAME:Londra in tasca"];
+  eventi.forEach(e => r.push("BEGIN:VEVENT", `UID:${e.uid}`, `DTSTAMP:${adesso}`, `DTSTART:${icsData(e.ini)}`, `DTEND:${icsData(e.fine)}`, `SUMMARY:${icsTesto(e.titolo)}`,
+    ...(e.luogo ? [`LOCATION:${icsTesto(e.luogo)}`] : []), ...(e.desc ? [`DESCRIPTION:${icsTesto(e.desc)}`] : []),
+    "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsTesto(e.titolo)}`, "TRIGGER:-PT60M", "END:VALARM", "END:VEVENT"));
+  scadenze.forEach(p => { const a = p.data.replace(/-/g, ""), b = icsData(new Date(new Date(p.data + "T12:00:00Z").getTime() + 864e5)).slice(0, 8);
+    r.push("BEGIN:VEVENT", `UID:lit-scad-${p.id}@londra-in-tasca`, `DTSTAMP:${adesso}`, `DTSTART;VALUE=DATE:${a}`, `DTEND;VALUE=DATE:${b}`, `SUMMARY:${icsTesto(p.t)}`, ...(p.d ? [`DESCRIPTION:${icsTesto(p.d)}`] : []),
+      "BEGIN:VALARM", "ACTION:DISPLAY", `DESCRIPTION:${icsTesto(p.t)}`, "TRIGGER:PT9H", "END:VALARM", "END:VEVENT"); });
+  r.push("END:VCALENDAR"); return r.map(icsRiga).join("\r\n") + "\r\n";
+}
 function nomeFile(prefisso) {
   const d = new Date(), p = n => String(n).padStart(2, "0");
   return `${prefisso}-${(S.me || "anon").replace(/[^\w-]/g, "")}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
@@ -638,6 +715,13 @@ const azioni = {
   profilo(v) { if (S.valP) { if (v) S.profili[S.valP] = v; else delete S.profili[S.valP]; salva(); render(); } },
   spuntaV(v) { if (!S.valP) return; const m = (S.val[S.valP] = S.val[S.valP] || {}); m[v] = !m[v]; tic(8); salva(); render(); valigiaPronta(); },
   azzeraV() { if (S.valP && confirm("Azzerare tutte le spunte della lista di " + S.valP + "?")) { S.val[S.valP] = {}; delete S.valigiaOk[S.valP]; salva(); render(); } },
+  mostra(v) { const m = TRIP.mostra.find(x => x.id === v); if (m) popup({ titolo: "Please take us to:", testo: m.righe.join("\n"), grande: true }); },
+  parla(v) { const f = TRIP.frasi[+v]; if (!f || !("speechSynthesis" in window)) return; try { const u = new SpeechSynthesisUtterance(f[1]); u.lang = "en-GB"; u.rate = .9; speechSynthesis.cancel(); speechSynthesis.speak(u); } catch { /* non disponibile */ } },
+  async ics(v) {
+    const d = TRIP.giorni[g], tutto = v === "tutto", f = new File([costruisciIcs(tutto ? TRIP.giorni.flatMap(eventiGiorno) : eventiGiorno(d), tutto ? TRIP.promemoria.filter(p => p.data) : [])], tutto ? "londra-calendario.ics" : `londra-calendario-${d.iso.slice(5)}.ics`, { type: "text/calendar" });
+    if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: "Londra in tasca" }); return; } catch (e) { if (e && e.name === "AbortError") return; } }
+    scaricaFile(f); dire("Calendario scaricato: aprilo dalle notifiche o dalla cartella Download per aggiungerlo al calendario."); render();
+  },
   async copia(v) { dire((await copia(String(v))) ? `Copiato: ${String(v).slice(0, 60)}` : "Copia non riuscita.", ""); render(); },
   async cambioOnline() {
     try {
@@ -755,7 +839,7 @@ if ("serviceWorker" in navigator) {
 applicaMov(); riduci.addEventListener("change", () => { applicaMov(); render(); });
 const aggiornaRete = () => { const o = $("#offline"); if (o) o.hidden = navigator.onLine; };
 addEventListener("online", aggiornaRete); addEventListener("offline", aggiornaRete); aggiornaRete();
-render(); cascata(); setTimeout(saluti, 900);
-document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(saluti, 600); });
+render(); cascata(); setTimeout(saluti, 900); setTimeout(caricaMeteo, 1500);
+document.addEventListener("visibilitychange", () => { if (!document.hidden) { setTimeout(saluti, 600); caricaMeteo(); } });
 setInterval(() => { if (tab === "viaggio" && vsub === "itin") aggiornaAdesso(); else if (tab === "oggi" && !document.activeElement.closest("form,textarea,input")) render(); }, 60000);
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch { /* ok */ }
