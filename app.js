@@ -105,7 +105,7 @@ function normLink(s) {
   try { const x = new URL(u); return /^https?:$/.test(x.protocol) ? x.href : ""; } catch { return ""; }
 }
 const host = u => { try { return new URL(u).hostname.replace(/^www\./, ""); } catch { return ""; } };
-const luogo = x => encodeURIComponent(/Luton|London|Londra/.test(x) ? x : x + ", London");
+const luogo = x => encodeURIComponent(/Luton|Stansted|London|Londra/.test(x) ? x : x + ", London");
 const casaQ = () => (S.riserv && S.riserv.alloggio && S.riserv.alloggio.indirizzo) || TRIP.alloggio.q;
 const qt = t => (t.casa && casaQ()) || t.q;
 function mapsUrl(qs, modo) {
@@ -272,7 +272,7 @@ function biglietto(da, a, nomeDa, nomeA, titolo, dettaglio, codice) {
 }
 function vistaPrenot() {
   const r = S.riserv || {};
-  return `${biglietto("VCE", "LTN", "Venezia Marco Polo", "Londra Luton", "Andata, Wizz Air W4 6747", "Mercoledì 23/12, partenza 19:05, arrivo 20:25. Solo bagaglio a mano 40x30x20.", r.voli && r.voli.andata)}
+  return `${biglietto("VCE", "STN", "Venezia Marco Polo", "Londra Stansted", "Andata, Ryanair FR 793", "Mercoledì 23/12, partenza 19:10, arrivo 20:25. Atterra a Stansted, non a Luton. Carta d'imbarco solo sull'app.", r.voli && r.voli.andata)}
     ${biglietto("LTN", "VCE", "Londra Luton", "Venezia Marco Polo", "Ritorno, Ryanair FR 761", "Domenica 27/12, partenza 20:55, arrivo 00:05 del 28/12. Carta d'imbarco solo sull'app.", r.voli && r.voli.ritorno)}
     <div class="scheda"><div class="nome">Cena della vigilia da Idalia</div><div class="desc">Pillar Hall, 5 Olympia Way, London W14 0EY. Giovedì 24/12 alle 20:15, tavolo per 5, tolleranza di 15 minuti.</div>
       ${r.idalia ? `<div class="riga" style="justify-content:space-between"><span class="codice">N. ${esc(r.idalia.conferma)}</span><button class="btn" data-az="copia" data-v="${esc(r.idalia.conferma)}">${ic("copy", 18)}Copia<span class="vh"> il numero OpenTable</span></button></div><div class="mute piccolo">Nome registrato: ${esc(r.idalia.nome)}</div>` : `<div class="mute piccolo" style="margin-top:8px">Conferma nel file riservato.</div>`}
