@@ -1,15 +1,12 @@
 "use strict";
-/* Londra in tasca 4, «Vetrina di Regent Street». Itinerario in dati.js; idee, spese, note e valigia nel telefono (localStorage, chiave lit-v1).
-   Versione principale: usa la chiave lit-v1 delle versioni precedenti, quindi nessuna migrazione e i dati restano dove sono. Formato di scambio identico. */
-const SyncX = typeof Sync !== "undefined" ? Sync : { start() {}, cambiato() {}, ora: () => Promise.resolve(), testo: () => "Non disponibile.", acceso: () => false };
-const CH = "lit-v1", CH_VECCHI = [];
+/* Londra in tasca. Itinerario in dati.js; spese, note e valigia nel telefono (localStorage, chiave lit-v1); le idee sono in sondaggio.js (Supabase). */
+const CH = "lit-v1";
 const $ = (s, r = document) => r.querySelector(s);
 const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
 const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
 const num = n => (Math.round(n * 100) / 100).toFixed(2).replace(".", ",");
 const gbp = n => "£" + num(n), eur = n => "€" + num(n);
 const vivi = a => a.filter(x => !x.del);
-const STATI = ["in votazione", "approvata", "respinta", "fatta"];
 const riduci = matchMedia("(prefers-reduced-motion: reduce)");
 const tic = ms => { try { if (navigator.vibrate) navigator.vibrate(ms || 10); } catch { /* non disponibile */ } };
 const ORD_TAB = ["oggi", "viaggio", "idee", "spese", "altro"];
@@ -52,7 +49,7 @@ const ICONE = {
 const ic = (n, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONE[n]}</svg>`;
 
 /* ---------- stato ---------- */
-const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", mov: "auto", riserv: null, migratoDa: "", finestre: {}, salutoGiorno: "", contoVisto: {}, valigiaOk: {} });
+const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", mov: "auto", riserv: null, finestre: {}, salutoGiorno: "", contoVisto: {}, valigiaOk: {} });
 const ID_OK = /^[A-Za-z0-9_-]{1,40}$/;
 const nomeOk = p => typeof p === "string" && p.trim() !== "" && p.length <= 40 && !/^(__proto__|constructor|prototype)$/.test(p);
 const mappa = (o, ok) => { const r = {}; if (o && typeof o === "object" && !Array.isArray(o)) for (const [k, v] of Object.entries(o).slice(0, 600)) if (k.length <= 80 && k !== "__proto__" && ok(v)) r[k] = v; return r; };
@@ -65,18 +62,15 @@ const pulisciMappe = x => {
 function leggi(k) { try { const r = localStorage.getItem(k); return r ? JSON.parse(r) : null; } catch { return null; } }
 function carica() {
   try {
-    let raw = leggi(CH), migra = "";
-    if (!raw) for (const k of CH_VECCHI) { raw = leggi(k); if (raw) { migra = k; break; } }
-    const x = Object.assign(vuoto(), raw || {});
+    const raw = leggi(CH), x = Object.assign(vuoto(), raw || {});
     for (const k of ["idee", "spese"]) x[k] = Array.isArray(x[k]) ? x[k].filter(y => y && typeof y === "object" && typeof y.id === "string" && ID_OK.test(y.id)) : [];
     pulisciMappe(x);
     if (!["auto", "on", "off"].includes(x.mov)) x.mov = raw && raw.neve === false ? "off" : "auto";
     delete x.neve;
     if (!Number.isFinite(+x.cambio)) x.cambio = 0;
     if (!Number.isFinite(+x.cambioQ)) x.cambioQ = 0;
-    for (const k of ["me", "valP", "cambioData", "migratoDa"]) if (typeof x[k] !== "string") x[k] = "";
+    for (const k of ["me", "valP", "cambioData"]) if (typeof x[k] !== "string") x[k] = "";
     if (x.riserv && typeof x.riserv !== "object") x.riserv = null;
-    if (migra) { x.migratoDa = migra; try { localStorage.setItem(CH, JSON.stringify(x)); } catch { /* ok */ } }
     return x;
   } catch { return vuoto(); }
 }
@@ -88,13 +82,12 @@ function applicaMov() {
   const c = document.getElementById("neve"); if (c) c.hidden = movOff();
 }
 applicaMov();
-function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); if (typeof Sync !== "undefined") Sync.cambiato(); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
+function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
 const gruppo = () => (S.riserv && Array.isArray(S.riserv.gruppo) && S.riserv.gruppo.length ? S.riserv.gruppo : TRIP.gruppoDefault);
 const oggiIso = (n = new Date()) => `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
 const giornoIniziale = () => { const i = TRIP.giorni.findIndex(d => d.iso === oggiIso()); return i < 0 ? 0 : i; };
 
-let tab = "oggi", g = giornoIniziale(), vsub = "itin", sub = "scambio", msg = "", msgTipo = "", edit = null, bozza = null;
-let filtroG = null, filtroS = null, filtroC = null, ordine = "recenti";
+let tab = "oggi", g = giornoIniziale(), vsub = "itin", sub = "valigia", msg = "", msgTipo = "", edit = null;
 
 /* ---------- link e Google Maps ---------- */
 const primoLink = s => { const m = /https?:\/\/[^\s<>"']+/i.exec(String(s || "")); return m ? m[0].replace(/[.,;)]+$/, "") : ""; };
@@ -154,22 +147,12 @@ function aggiornaAdesso() {
   if (st.cur >= 0) $(`.tl li[data-i="${st.cur}"]`)?.classList.add("in-corso");
   if (st.next >= 0) $(`.tl li[data-i="${st.next}"]`)?.classList.add("prossima");
 }
-/* ---------- sondaggio ---------- */
-const votanti = () => gruppo();
-const miVoto = i => (S.me && i.voti && i.voti[S.me] && i.voti[S.me][0]) || 0;
-const possoVotare = () => !!S.me && votanti().includes(S.me);
-const possoChiudere = i => !!S.me && (i.autore === S.me || primo(S.me) === primo(TRIP.organizzatore));
-function conteggio(i) {
-  const c = { s: 0, n: 0, x: 0 }, mancano = [];
-  votanti().forEach(p => { const k = i.voti && i.voti[p] ? i.voti[p][0] : 0; if (k === 1) c.s++; else if (k === 2) c.n++; else if (k === 3) c.x++; else mancano.push(p); });
-  const esito = c.s + c.n === 0 ? "nessun voto" : c.s > c.n ? "approvata" : c.n > c.s ? "respinta" : "pari";
-  return { c, mancano, esito, votato: votanti().length - mancano.length };
-}
-const daVotareIdea = i => !i.del && +i.stato === 0 && possoVotare() && miVoto(i) === 0;
-const daVotare = () => vivi(S.idee).filter(daVotareIdea).length;
-function avvisaVoti() {
-  const n = daVotare();
-  if (n > 0) toast(`Hai ${n} ${n === 1 ? "idea" : "idee"} da votare. Tocca per votare.`, () => { tab = "idee"; filtroS = "mie"; msg = ""; edit = null; scrollTo(0, 0); render(); focaTitolo(); });
+/* ---------- idee da votare (arrivano dal modulo Idee, sondaggio.js) ---------- */
+const daVotare = () => (typeof Sond !== "undefined" ? Sond.daVotare() : 0);
+function aggiornaBadge() {
+  const dv = daVotare(), bd = $("#badge-idee"), bt = $('#dock [data-t="idee"]');
+  if (bd) { bd.hidden = !dv; bd.textContent = dv; }
+  if (bt) { if (dv) bt.setAttribute("aria-label", `Idee, ${dv} da votare`); else bt.removeAttribute("aria-label"); }
 }
 
 /* ---------- valigia ---------- */
@@ -221,7 +204,7 @@ function vistaOggi() {
     <div class="elenco">${voce("bulb", "Idee da votare", dv ? "Tocca per votare" : "Nessuna in attesa", dv, "idee:mie", dv ? " allerta" : "")}</div>
     <h2 class="h-sez">In borsa</h2>
     <div class="elenco">
-      ${voce("plane", "Voli e prenotazioni", "Andata mer 23/12 alle 19:05, ritorno dom 27/12 alle 20:55", "", "viaggio:prenot")}
+      ${voce("plane", "Voli e prenotazioni", esc(TRIP.sintesiVoli), "", "viaggio:prenot")}
       ${voce("bag", "Valigia", vs && vs.tot ? `${esc(S.valP)}: ${vs.fatte} su ${vs.tot}` : "Scegli chi sei per la tua lista", "", "altro:valigia")}
       ${voce("key", "Frasi utili in inglese", "Per ristoranti, taxi e metro", "", "altro:frasi")}
       <a class="voce" href="tel:999">${ic("phone", 22)}<span class="t"><b>Emergenze nel Regno Unito</b><span>Polizia, ambulanza, pompieri</span></span><span class="v">999</span></a>
@@ -229,7 +212,6 @@ function vistaOggi() {
     <h2 class="h-sez">Conti</h2>
     <div class="elenco">
       ${voce("wallet", "Spese", S.cambio > 0 ? "circa " + eur(tot * S.cambio) : "speso finora", gbp(tot), "spese")}
-      ${voce("swap", "Cambio", "Sterline ed euro, anche senza rete", S.cambio > 0 ? `£10 = ${eur(10 * S.cambio)}` : "da impostare", "altro:cambio")}
     </div>`;
 }
 
@@ -268,7 +250,7 @@ function casella(id, t, d) {
 function biglietto(da, a, nomeDa, nomeA, titolo, dettaglio, codice) {
   return `<div class="biglietto"><div class="tratta"><div><b>${da}</b><small>${nomeDa}</small></div>${ic("plane", 28)}<div style="text-align:right"><b>${a}</b><small>${nomeA}</small></div></div>
     <div class="perfora"></div><div class="nome">${titolo}</div><div class="desc">${dettaglio}</div>
-    ${codice ? `<div class="riga" style="justify-content:space-between"><span class="codice">${esc(codice)}</span><button class="btn" data-az="copia" data-v="${esc(codice)}">${ic("copy", 18)}Copia<span class="vh"> il codice di prenotazione</span></button></div>` : `<div class="mute piccolo" style="margin-top:8px">Codice nel file riservato: importalo da Altro, Scambio.</div>`}</div>`;
+    ${codice ? `<div class="riga" style="justify-content:space-between"><span class="codice">${esc(codice)}</span><button class="btn" data-az="copia" data-v="${esc(codice)}">${ic("copy", 18)}Copia<span class="vh"> il codice di prenotazione</span></button></div>` : `<div class="mute piccolo" style="margin-top:8px">Codice nel file riservato: importalo da Altro, Sistema.</div>`}</div>`;
 }
 function vistaPrenot() {
   const r = S.riserv || {};
@@ -285,56 +267,8 @@ function vistaPrenot() {
     <h2 class="h-sez">Info utili</h2><div class="scheda"><ul class="lista">${TRIP.info.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
 }
 
-/* idee */
-function formIdea(x = {}) {
-  const mod = !!x.id;
-  return `<form class="f" data-form="idea"><input type="hidden" name="id" value="${esc(x.id || "")}">
-    <label class="mute" for="i-testo">Idea</label><input type="text" id="i-testo" name="testo" placeholder="Es. Natural History Museum" required maxlength="200" value="${esc(x.testo || "")}">
-    <label class="mute" for="i-cat">Categoria</label><select id="i-cat" name="cat">${IDEE_CAT.map(([k, l]) => `<option value="${k}"${catOk(IDEE_CAT, x.cat) === k ? " selected" : ""}>${l}</option>`).join("")}</select>
-    <label class="mute" for="i-link">Link (facoltativo)</label><input type="text" id="i-link" name="link" inputmode="url" autocapitalize="none" placeholder="TikTok, Instagram, sito web" value="${esc(x.link || "")}">
-    <label class="mute" for="i-nota">Nome del posto o nota (facoltativa)</label><input type="text" id="i-nota" name="nota" maxlength="200" value="${esc(x.nota || "")}">
-    <label class="mute" for="i-giorno">Giorno</label><select id="i-giorno" name="giorno"><option value="0">Qualsiasi giorno</option>${TRIP.giorni.map((d, i) => `<option value="${i + 1}"${+x.giorno === i + 1 ? " selected" : ""}>Giorno ${i + 1}, ${esc(d.breve)}</option>`).join("")}</select>
-    <div class="riga"><button class="btn pri" type="submit">${mod ? "Salva modifica" : "Aggiungi idea"}</button>${mod || bozza ? `<button type="button" class="btn" data-az="annulla">Annulla</button>` : ""}</div></form>`;
-}
-function schedaIdea(i) {
-  const l = normLink(i.link), id = esc(i.id), k = conteggio(i), mio = miVoto(i), aperta = +i.stato === 0, chiude = possoChiudere(i), nv = votanti().length;
-  const bv = (n, lab) => `<button class="voto s${n}" data-az="vota" data-v="${id}:${n}" aria-pressed="${mio === n}"${aperta ? "" : " disabled"}>${lab}<span class="vh"> per ${esc(i.testo)}</span></button>`;
-  const chiusura = [aperta && chiude ? `<button class="btn" data-az="chiudi" data-v="${id}:1">Chiudi: approvata</button><button class="btn" data-az="chiudi" data-v="${id}:2">Chiudi: respinta</button>` : "",
-    +i.stato === 1 && chiude ? `<button class="btn" data-az="chiudi" data-v="${id}:3">Segna come fatta</button>` : "",
-    !aperta && chiude ? `<button class="btn" data-az="chiudi" data-v="${id}:0">Riapri</button>` : ""].join("");
-  const cat = catOk(IDEE_CAT, i.cat);
-  return `<div class="scheda"><div class="nome" style="font-size:1.125rem">${esc(i.testo)}</div>
-    <div class="riga" style="margin:4px 0 0"><span class="pill st${+i.stato}">${STATI[+i.stato] || STATI[0]}</span><span class="cat c-${cat}">${catNome(IDEE_CAT, cat)}</span></div>${i.nota ? `<div class="desc">${esc(i.nota)}</div>` : ""}
-    ${l ? `<div class="riga"><a class="map" target="_blank" rel="noopener noreferrer" href="${esc(l)}">Apri il link<span class="vh"> di ${esc(i.testo)}</span>&nbsp;(${esc(host(l))})<span class="vh">, si apre in una nuova scheda</span></a></div>` : ""}
-    <div class="desc">Proposta di ${esc(i.autore || "qualcuno")}${+i.giorno ? `, per il giorno ${+i.giorno}` : ""}${i.chiusoDa && !aperta ? `. Chiusa da ${esc(i.chiusoDa)}` : ""}.</div>
-    <div class="sond" role="group" aria-label="Sondaggio: ${esc(i.testo)}">
-      <div class="barra" role="img" aria-label="Sì ${k.c.s}, No ${k.c.n}, Non so ${k.c.x}, mancano ${k.mancano.length}"><i class="s" style="flex:${k.c.s}"></i><i class="n" style="flex:${k.c.n}"></i><i class="x" style="flex:${k.c.x}"></i><i class="m" style="flex:${k.mancano.length}"></i></div>
-      <div class="desc" style="margin:0 0 8px">Sì ${k.c.s}, No ${k.c.n}, Non so ${k.c.x}. Hanno votato ${k.votato} su ${nv}${k.mancano.length ? `, mancano ${esc(k.mancano.join(", "))}` : ""}.${aperta ? ` Secondo la maggioranza: <b>${k.esito}</b>.` : ""}</div>
-      <div class="riga" style="margin:0">${bv(1, "Sì")}${bv(2, "No")}${bv(3, "Non so")}</div></div>
-    ${chiusura ? `<div class="riga">${chiusura}</div>` : ""}
-    <div class="riga"><button class="btn" data-az="modIdea" data-v="${id}">Modifica<span class="vh"> ${esc(i.testo)}</span></button><button class="btn tondo rosso" data-az="delIdea" data-v="${id}" aria-label="Elimina ${esc(i.testo)}">${ic("x", 18)}</button></div></div>`;
-}
-function vistaIdee() {
-  if (typeof Sond !== "undefined") return Sond.vistaIdee();
-  const ps = gruppo(), dv = daVotare();
-  const cats = [["", "Ogni categoria"], ...IDEE_CAT].map(([v, l]) => `<button class="chip" data-az="filtroC" data-v="${v}" aria-pressed="${(filtroC ?? "") === v}">${l}</button>`).join("");
-  const stati = [["", "Ogni stato"], ["mie", "Da votare da me"], ["0", "In votazione"], ["1", "Approvate"], ["2", "Respinte"], ["3", "Fatte"]].map(([v, l]) => `<button class="chip" data-az="filtroS" data-v="${v}" aria-pressed="${(filtroS ?? "") === v}">${l}</button>`).join("");
-  const giorni = [["", "Tutti i giorni"], ...TRIP.giorni.map((d, i) => [String(i + 1), "Giorno " + (i + 1)]), ["0", "Senza giorno"]].map(([v, l]) => `<button class="chip" data-az="filtro" data-v="${v}" aria-pressed="${(filtroG ?? "") === v}">${l}</button>`).join("");
-  const punti = i => { const k = conteggio(i); return k.c.s - k.c.n; };
-  const passa = i => (filtroG == null || +i.giorno === +filtroG) && (filtroC == null || catOk(IDEE_CAT, i.cat) === filtroC) && (filtroS == null || (filtroS === "mie" ? daVotareIdea(i) : +i.stato === +filtroS));
-  const lista = vivi(S.idee).filter(passa).sort((a, b) => (ordine === "voti" ? punti(b) - punti(a) : 0) || b.ts - a.ts).map(schedaIdea).join("");
-  const ed = edit && edit.k === "idee" ? S.idee.find(x => x.id === edit.id && !x.del) : null, attivi = filtroG != null;
-  return `<h1 class="vt">${dv > 0 ? `${dv} ${dv === 1 ? "idea" : "idee"} da votare` : "Idee"}</h1>${avviso()}${bannerSync()}
-    <p class="mute">Ogni idea è un sondaggio: votano i quattro adulti e vince la maggioranza. Con la sincronizzazione attiva, idee e voti arrivano da soli su tutti i telefoni.</p>
-    ${S.me ? "" : `<div class="scheda"><label class="mute" for="chisei">Chi sei? Serve per firmare idee e voti.</label><select id="chisei" data-chg="me"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option>${esc(p)}</option>`).join("")}</select></div>`}
-    <details class="scheda nuova"${ed || bozza ? " open" : ""}><summary>Nuova idea</summary>${formIdea(ed || bozza || {})}</details>
-    <div class="chips" role="group" aria-label="Filtra per stato">${stati}</div>
-    <div class="chips" role="group" aria-label="Filtra per categoria">${cats}</div>
-    <div class="chips" role="group" aria-label="Ordine"><button class="chip" data-az="ordine" data-v="recenti" aria-pressed="${ordine !== "voti"}">Più recenti</button><button class="chip" data-az="ordine" data-v="voti" aria-pressed="${ordine === "voti"}">Più votate</button></div>
-    <details class="scheda nuova"${attivi ? " open" : ""}><summary>Filtra per giorno${attivi ? " (attivo)" : ""}</summary>
-    <div class="chips avvolgi" role="group" aria-label="Filtra per giorno">${giorni}</div></details>
-    ${lista || `<div class="vuoto">Nessuna idea${filtroG != null || filtroS != null || filtroC != null ? " per questo filtro" : " ancora. Aggiungine una qui sopra"}.</div>`}`;
-}
+/* idee: la pagina è nel modulo Idee (sondaggio.js) */
+const vistaIdee = () => (typeof Sond !== "undefined" ? Sond.vistaIdee() : `<h1 class="vt">Idee</h1><div class="scheda"><div class="desc">Le idee non sono disponibili: ricarica l'app.</div></div>`);
 
 /* spese */
 function saldi() {
@@ -389,17 +323,17 @@ function vistaSpese() {
 
 /* altro */
 function vistaAltro() {
-  const seg = [["scambio", "Scambio"], ["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"], ["sistema", "Sistema"]]
+  const seg = [["valigia", "Valigia"], ["cambio", "Cambio"], ["frasi", "Frasi"], ["sistema", "Sistema"]]
     .map(([v, l]) => `<button class="chip" data-az="sub" data-v="${v}" aria-pressed="${sub === v}">${l}</button>`).join("");
-  const corpo = { scambio: vistaScambio, valigia: vistaValigia, cambio: vistaCambio, frasi: vistaFrasi, sondaggio: () => (typeof Sond !== "undefined" ? Sond.vista() : ""), sistema: vistaSistema }[sub]();
-  return `<h1 class="vt">${{ scambio: "Scambio dati", valigia: "Valigia", cambio: "Cambio", frasi: "Frasi utili", sondaggio: "Sondaggio collaborativo", sistema: "Sistema" }[sub]}</h1>${avviso()}<div class="chips avvolgi" role="group" aria-label="Sezione di Altro">${seg}</div><div class="pila">${corpo}</div>`;
+  const corpo = { valigia: vistaValigia, cambio: vistaCambio, frasi: vistaFrasi, sistema: vistaSistema }[sub]();
+  return `<h1 class="vt">${{ valigia: "Valigia", cambio: "Cambio", frasi: "Frasi utili", sistema: "Sistema" }[sub]}</h1>${avviso()}<div class="chips avvolgi" role="group" aria-label="Sezione di Altro">${seg}</div><div class="pila">${corpo}</div>`;
 }
 function vistaValigia() {
   const ps = persone(), gg = TRIP.giorni.length, nn = gg - 1;
   if (!ps.includes(S.valP)) S.valP = "";
   const chips = ps.map(p => `<button class="chip" data-az="valP" data-v="${esc(p)}" aria-pressed="${p === S.valP}">${esc(p)}</button>`).join("");
   const testa = `<div class="scheda"><div class="nome">Valigia per ${gg} giorni e ${nn} notti</div>
-    <div class="desc">A dicembre a Londra di solito fa freddo e piove: vestiti a strati. Bagaglio a mano 40x30x20, quindi le cose più ingombranti si indossano in aereo.</div>
+    <div class="desc">A dicembre a Londra di solito fa freddo e piove: vestiti a strati. Il bagaglio a mano è piccolo (controlla le misure nell'app Ryanair), quindi le cose più ingombranti si indossano in aereo.</div>
     <div class="chips avvolgi" role="group" aria-label="Chi sei" style="margin-top:10px">${chips}</div></div>`;
   if (!S.valP) return testa + `<div class="vuoto">Scegli il tuo nome per vedere la tua lista.</div>`;
   const pr = profiloDi(S.valP);
@@ -432,31 +366,25 @@ function vistaCambio() {
 const vistaFrasi = () => `<div class="scheda">${TRIP.frasi.map(([it, en]) => `<div class="frase"><div class="mute">${esc(it)}</div><div class="nome" lang="en-GB">${esc(en)}</div></div>`).join("")}</div>
   <h2 class="h-sez">Numeri utili nel Regno Unito</h2><div class="scheda">${TRIP.emergenze.map(e => `<div class="frase"><a class="map" href="tel:${e.n}">${ic("phone", 18)}Chiama ${e.n}</a><div class="desc">${esc(e.t)}</div></div>`).join("")}</div>
   <p class="mute">Ambasciata e consolato d'Italia: cerca i recapiti aggiornati su dovesiamonelmondo.esteri.it.</p>`;
-function vistaScambio() {
+function vistaSistema() {
   const ps = gruppo();
-  return `<div class="scheda"><div class="nome">Chi sei?</div><select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
-    <div class="scheda"><div class="nome">Idee e voti del gruppo</div><div class="desc">Le idee e i voti si condividono da soli nella pagina Idee, senza file né messaggi. Questa pagina serve solo per i vecchi scambi manuali, per le spese e per i dati riservati.</div>
-    <div class="riga"><button class="btn" data-az="vai" data-v="idee">Vai alle Idee</button></div></div>
-    <div class="scheda"><div class="nome">Invia le tue idee, i voti e le spese</div><div class="desc">Il modo più semplice: manda il messaggio su WhatsApp. Chi lo riceve lo incolla qui sotto.</div>
+  return `<div class="scheda"><div class="nome">Uso senza rete</div><div class="desc" id="stato-offline">Controllo in corso.</div><div class="mute piccolo" id="ver-app"></div></div>
+    <div class="scheda"><div class="nome">Chi sei?</div><div class="desc">Serve per firmare le spese. Per le idee il nome si sceglie nella pagina Idee.</div><select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
+    <div class="scheda"><div class="nome">Spese tra telefoni</div><div class="desc">Le spese stanno su ogni telefono. Per metterle insieme, manda le tue su WhatsApp: chi le riceve le incolla qui sotto e si uniscono senza duplicati.</div>
     <div class="riga"><button class="btn pri" data-az="whatsapp">Invia su WhatsApp</button><button class="btn" data-az="copiaCodice">${ic("copy", 18)}Copia il testo</button></div>
-    <div class="desc" style="margin-top:10px">In alternativa un file:</div><div class="riga"><button class="btn" data-az="condividi">Condividi il file</button><button class="btn" data-az="scarica">Scarica</button></div></div>
-    <div class="scheda"><div class="nome">Ricevi idee, voti e spese</div><div class="desc">Incolla il messaggio ricevuto, oppure scegli un file. Si uniscono senza duplicati. Vale anche per i dati riservati.</div>
+    <div class="riga"><button class="btn" data-az="condividi">Condividi il file</button><button class="btn" data-az="scarica">Scarica</button></div>
     <label class="mute" for="incolla" style="margin-top:10px">Messaggio ricevuto</label><textarea id="incolla" rows="3" placeholder="Incolla qui il messaggio"></textarea>
     <div class="riga"><button class="btn pri" data-az="importaTesto">Importa il testo</button></div>
     <div class="riga"><input type="file" id="file" accept="application/json,.json" multiple data-chg="importa" aria-label="Scegli un file da importare"></div></div>
-    <div class="scheda"><div class="nome">Dati riservati</div><div class="desc">${S.riserv && (S.riserv.voli || S.riserv.idalia || S.riserv.alloggio) ? "Importati: codici e nomi sono visibili in Viaggio, Prenotazioni." : S.riserv ? "Non importati: è attiva solo la sincronizzazione. Codici e nomi arrivano col file riservato." : "Non importati."}</div>
-    ${S.riserv ? `<div class="riga"><button class="btn rosso" data-az="togliRiserv">Rimuovi dal telefono</button></div>` : ""}</div>`;
-}
-function vistaSistema() {
-  return `<div class="scheda"><div class="nome">Uso senza rete</div><div class="desc" id="stato-offline">Controllo in corso.</div><div class="mute piccolo" id="ver-app"></div></div>
-    <div class="scheda"><div class="nome">Backup completo</div><div class="desc">Salva tutto ciò che è su questo telefono: idee, voti, spese, note, valigia e cambio. I dati riservati non sono inclusi.</div>
+    <div class="scheda"><div class="nome">Dati riservati</div><div class="desc">${S.riserv && (S.riserv.voli || S.riserv.idalia || S.riserv.alloggio) ? "Importati: codici e nomi sono visibili in Viaggio, Prenotazioni." : "Non importati. Si importano con il file riservato, dal riquadro qui sopra."}</div>
+    ${S.riserv ? `<div class="riga"><button class="btn rosso" data-az="togliRiserv">Rimuovi dal telefono</button></div>` : ""}</div>
+    <div class="scheda"><div class="nome">Backup completo</div><div class="desc">Salva tutto ciò che è su questo telefono: spese, note, valigia e cambio. I dati riservati non sono inclusi.</div>
     <div class="riga"><button class="btn pri" data-az="backup">Esporta il backup</button></div>
     <div class="riga"><input type="file" id="ripristino" accept="application/json,.json" data-chg="ripristina" aria-label="Scegli un backup da ripristinare"></div></div>
     <div class="scheda"><div class="nome">Movimento e neve</div><div class="desc">${riduci.matches ? "Questo telefono chiede di ridurre le animazioni (su Android: Impostazioni, Accessibilità, «Rimuovi animazioni»; il nome cambia da marca a marca). In Automatico l'app resta ferma. Scegli «Sempre attivo» per vedere comunque transizioni, neve, luci e popup." : "Transizioni, neve, luci e popup. In Automatico seguono le impostazioni del telefono."}</div>
     <div class="chips avvolgi" role="group" aria-label="Movimento">${[["auto", "Automatico"], ["on", "Sempre attivo"], ["off", "Spento"]].map(([v, l]) => `<button class="chip" data-az="mov" data-v="${v}" aria-pressed="${S.mov === v}">${l}</button>`).join("")}</div>
     <div class="desc" style="margin-top:8px">Adesso il movimento è ${movOff() ? "spento" : "attivo"}.</div></div>
-    <div class="scheda"><div class="nome">Versione 4</div><div class="desc">Unisce le funzioni della versione 2 e della 3 con la nuova grafica. ${S.migratoDa ? "I dati della versione precedente sono stati copiati qui al primo avvio, che restano com'erano nell'altra: da ora le versioni non si aggiornano a vicenda." : "Questa versione tiene i suoi dati per conto proprio."}</div></div>
-    <p class="mute piccolo">Idee e spese: ${vivi(S.idee).length} e ${vivi(S.spese).length}, salvate solo su questo telefono.</p>`;
+    <p class="mute piccolo">Spese salvate su questo telefono: ${vivi(S.spese).length}.</p>`;
 }
 
 /* ---------- scintille d'oro ---------- */
@@ -515,7 +443,7 @@ function testoPartenza() {
   return `Si parte ${p.toLocaleDateString("it-IT", { weekday: "long", day: "numeric", month: "long" })} alle ${p.toLocaleTimeString("it-IT", { hour: "2-digit", minute: "2-digit" })} da Venezia.`;
 }
 function saluti() {
-  if (edit || bozza || document.querySelector("dialog[open]")) return;
+  if (edit || document.querySelector("dialog[open]")) return;
   const n = new Date(), iso = oggiIso(n), i = TRIP.giorni.findIndex(d => d.iso === iso);
   if (i >= 0) {
     if (S.salutoGiorno === iso) return;
@@ -529,7 +457,7 @@ function saluti() {
   if (![7, 3, 1].includes(gg) || S.contoVisto[gg]) return;
   const dv = daVotare(), vs = S.valP ? statoValigia(S.valP) : null;
   popup({ titolo: gg === 1 ? "Si parte domani" : `Mancano ${gg} giorni`, testo: testoPartenza() + (vs && vs.tot ? ` Valigia di ${S.valP}: ${vs.fatte} su ${vs.tot}.` : "") + (dv ? ` Idee da votare: ${dv}.` : ""), etichetta: dv ? "Vota le idee" : "Apri la valigia", festa: gg === 1,
-    apertura: () => { S.contoVisto[gg] = true; salva(); }, azione: () => { if (dv) { filtroS = "mie"; azioni.tab("idee"); } else { sub = "valigia"; azioni.tab("altro"); } } });
+    apertura: () => { S.contoVisto[gg] = true; salva(); }, azione: () => { if (dv) { if (typeof Sond !== "undefined") Sond.filtraMie(); azioni.tab("idee"); } else { sub = "valigia"; azioni.tab("altro"); } } });
 }
 
 /* ---------- barra, rendering, focus ---------- */
@@ -557,9 +485,7 @@ function render(foco) {
   if (bersaglio) { try { const el = $(bersaglio); if (el) el.focus({ preventScroll: true }); } catch { /* selettore non valido */ } }
   document.title = (tab === "oggi" ? "" : DOCK.find(d => d[0] === tab)[1] + " - ") + "Londra in tasca";
   document.querySelectorAll("#dock button").forEach(b => { if (b.dataset.t === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
-  const dv = daVotare(), bd = $("#badge-idee"), bt = $('#dock [data-t="idee"]');
-  if (bd) { bd.hidden = !dv; bd.textContent = dv; }
-  if (bt) { if (dv) bt.setAttribute("aria-label", `Idee, ${dv} da votare`); else bt.removeAttribute("aria-label"); }
+  aggiornaBadge();
   if (msg && msg !== annunciato) { annunciato = msg; di(msg); } else if (!msg) annunciato = "";
   const ind = $("#dock .ind"); if (ind) ind.style.transform = `translateX(${Math.max(0, ORD_TAB.indexOf(tab)) * 100}%)`;
   aggiornaAdesso();
@@ -583,51 +509,14 @@ const nuovoTs = prev => Math.max(Date.now(), (+prev || 0) + 1);
 const primo = x => String(x || "").split(" ")[0];
 const str = (v, n) => String(v ?? "").slice(0, n);
 const nomi = a => (Array.isArray(a) ? a.filter(nomeOk).slice(0, 12) : []);
-const unisciVoti = (a, b) => {
-  const o = {};
-  for (const src of [a, b]) for (const n of Object.keys(src || {})) {
-    if (!nomeOk(n)) continue;
-    const v = src[n]; if (!Array.isArray(v)) continue;
-    const w = [[1, 2, 3].includes(v[0]) ? v[0] : 0, tsOk(v[1])];
-    if (!Object.prototype.hasOwnProperty.call(o, n) || w[1] > o[n][1]) o[n] = w;
-  }
-  return o;
-};
 function unisci(k, x) {
-  if (!x || typeof x.id !== "string" || !ID_OK.test(x.id)) return false;
-  const y = { id: x.id, ts: tsOk(x.ts), del: x.del === true };
-  if (k === "spese") {
-    const imp = Number(x.importo); if (!Number.isFinite(imp) || imp <= 0 || imp > 1e6 || !nomeOk(x.chi)) return false;
-    Object.assign(y, { desc: str(x.desc, 80), importo: imp, chi: nomeOk(x.chi) ? x.chi : "", tra: nomi(x.tra), cat: catOk(SPESE_CAT, x.cat) });
-  } else {
-    Object.assign(y, { testo: str(x.testo, 200), link: normLink(x.link), nota: str(x.nota, 200), giorno: [0, 1, 2, 3, 4, 5].includes(+x.giorno) ? +x.giorno : 0, cat: catOk(IDEE_CAT, x.cat),
-      stato: [0, 1, 2, 3].includes(+x.stato) ? +x.stato : 0, autore: nomeOk(x.autore) ? x.autore : "", chiusoDa: nomeOk(x.chiusoDa) ? x.chiusoDa : "", voti: unisciVoti({}, x.voti) });
-  }
-  const i = S[k].findIndex(z => z.id === y.id);
-  if (i < 0) { S[k].push(y); return true; }
-  const l = S[k][i];
-  if (y.ts > (l.ts || 0)) { if (k === "idee") y.voti = unisciVoti(l.voti, y.voti); S[k][i] = y; return true; }
-  if (k === "idee") { const v = unisciVoti(l.voti, y.voti); if (JSON.stringify(v) !== JSON.stringify(l.voti || {})) { l.voti = v; return true; } }
+  if (k !== "spese" || !x || typeof x.id !== "string" || !ID_OK.test(x.id)) return false;
+  const imp = Number(x.importo); if (!Number.isFinite(imp) || imp <= 0 || imp > 1e6 || !nomeOk(x.chi)) return false;
+  const y = { id: x.id, ts: tsOk(x.ts), del: x.del === true, desc: str(x.desc, 80), importo: imp, chi: x.chi, tra: nomi(x.tra), cat: catOk(SPESE_CAT, x.cat) };
+  const i = S.spese.findIndex(z => z.id === y.id);
+  if (i < 0) { S.spese.push(y); return true; }
+  if (y.ts > (S.spese[i].ts || 0)) { S.spese[i] = y; return true; }
   return false;
-}
-const aB64u = t => aB64(t).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
-const daB64u = t => daB64(t.replace(/-/g, "+").replace(/_/g, "/") + "=".repeat((4 - t.length % 4) % 4));
-const linkAttiva = () => { const c = S.riserv && S.riserv.sync; return c ? location.origin + location.pathname.replace(/[^/]*$/, "") + "#attiva=" + aB64u(JSON.stringify({ u: c.url, c: c.codice })) : ""; };
-/* attiva la sincronizzazione da un link ricevuto su WhatsApp (o incollato): niente file da importare */
-function attivaToken(tok) {
-  let c = null;
-  try { const j = JSON.parse(daB64u(tok)); c = pulisciRiserv({ sync: { url: j.u, codice: j.c } }).sync || null; } catch { c = null; }
-  if (!c) { dire("Il link di attivazione non è valido o è tagliato: chiedi di inviartelo di nuovo.", "avv"); return false; }
-  const att = S.riserv && S.riserv.sync;
-  if (att && (att.url !== c.url || att.codice !== c.codice) && !confirm("Questo telefono usa già un'altra sincronizzazione. Sostituirla?")) return false;
-  S.riserv = Object.assign(S.riserv || { riservati: true }, { sync: c }); salva();
-  dire("Sincronizzazione attivata. Scegli il tuo nome in «Chi sei?»: da ora idee e voti arrivano da soli."); tab = "idee";
-  SyncX.start(); return true;
-}
-function attivaDaLink() {
-  const m = /^#attiva=([A-Za-z0-9_-]+)$/.exec(location.hash); if (!m) return false;
-  try { history.replaceState(null, "", location.pathname + location.search); } catch { /* ok */ }
-  attivaToken(m[1]); return true;
 }
 function pulisciRiserv(j) {
   const s = (v, n = 60) => (typeof v === "string" ? v.slice(0, n) : ""), o = { riservati: true }, gr = nomi(j.gruppo);
@@ -636,19 +525,18 @@ function pulisciRiserv(j) {
   if (j.voli && typeof j.voli === "object") o.voli = { andata: s(j.voli.andata, 20), ritorno: s(j.voli.ritorno, 20) };
   if (j.idalia && typeof j.idalia === "object") o.idalia = { conferma: s(j.idalia.conferma, 20), nome: s(j.idalia.nome) };
   if (j.alloggio && typeof j.alloggio === "object") o.alloggio = { indirizzo: s(j.alloggio.indirizzo, 120) };
-  if (j.sync && typeof j.sync === "object" && /^https:\/\/[a-z0-9-]+(\.[a-z0-9-]+)*\.(firebasedatabase\.app|firebaseio\.com)$/.test(j.sync.url || "") && /^[A-Za-z0-9_-]{16,64}$/.test(j.sync.codice || "")) o.sync = { url: j.sync.url, codice: j.sync.codice };
   return o;
 }
 function ripristina(j) {
   const d = j && j.dati; if (!d || typeof d !== "object") return false;
   try { localStorage.setItem("lit4-prima-ripristino", JSON.stringify(S)); } catch { /* ok */ }
-  const n = vuoto(); n.riserv = S.riserv; n.migratoDa = S.migratoDa; n.mov = ["auto", "on", "off"].includes(d.mov) ? d.mov : (d.neve === false ? "off" : "auto");
+  const n = vuoto(); n.riserv = S.riserv; n.mov = ["auto", "on", "off"].includes(d.mov) ? d.mov : (d.neve === false ? "off" : "auto");
   n.me = gruppo().includes(S.me) ? S.me : ""; n.valP = nomeOk(d.valP) ? d.valP : "";
   for (const k of ["fatti", "note", "val", "profili", "finestre", "contoVisto", "valigiaOk"]) n[k] = d[k];
   n.salutoGiorno = typeof d.salutoGiorno === "string" ? d.salutoGiorno : "";
   pulisciMappe(n);
   n.cambio = Number(d.cambio) > 0 ? Number(d.cambio) : 0; n.cambioQ = tsOk(d.cambioQ); n.cambioData = str(d.cambioData, 10);
-  S = n; applicaMov(); for (const k of ["idee", "spese"]) for (const x of (Array.isArray(d[k]) ? d[k] : [])) unisci(k, x);
+  S = n; applicaMov(); for (const x of (Array.isArray(d.spese) ? d.spese : [])) unisci("spese", x);
   return true;
 }
 function rimappaMe() { if (S.me && !gruppo().includes(S.me)) { const t = gruppo().find(p => primo(p) === primo(S.me)); S.me = t || ""; } }
@@ -657,38 +545,35 @@ function applica(j, n, consentiBackup) {
     if (S.riserv && !confirm("Esistono già dati riservati su questo telefono. Sostituirli con quelli del file?")) return true;
     S.riserv = pulisciRiserv(j); n.riserv = true; rimappaMe(); return true;
   }
-  if (j && j.lit3backup) { if (!consentiBackup) { n.nota = "Questo è un backup: usa Altro, Sistema, Ripristina."; return false; } n.backup = ripristina(j); return n.backup; }
+  if (j && j.lit3backup) { if (!consentiBackup) { n.nota = "Questo è un backup: usa Altro, Sistema, Backup completo."; return false; } n.backup = ripristina(j); return n.backup; }
   if (!j || j.app !== "londra-in-tasca") return false;
-  for (const k of ["idee", "spese"]) for (const x of (j[k] || [])) if (unisci(k, x)) n[k]++;
+  for (const x of (j.spese || [])) if (unisci("spese", x)) n.spese++;
   return true;
 }
 function esito(n, err) {
   salva();
-  dire(n.backup ? "Backup ripristinato. La copia dei dati precedenti è rimasta in memoria." : `Importato: ${n.idee} idee, ${n.spese} spese${n.riserv ? ", dati riservati" : ""}${err ? `. Non validi: ${err}${n.nota ? `. ${n.nota}` : ""}` : ""}.`, err ? "avv" : "");
-  render(); avvisaVoti();
-  if (n.riserv) SyncX.start();
+  dire(n.backup ? "Backup ripristinato. La copia dei dati precedenti è rimasta in memoria." : `Importato: ${n.spese} spese${n.riserv ? ", dati riservati" : ""}${err ? `. Non validi: ${err}${n.nota ? `. ${n.nota}` : ""}` : ""}.`, err ? "avv" : "");
+  render();
 }
 async function importaFile(files, consentiBackup) {
-  const n = { idee: 0, spese: 0, riserv: false, backup: false }; let err = 0;
+  const n = { spese: 0, riserv: false, backup: false }; let err = 0;
   for (const f of files) { try { if (!applica(JSON.parse(await f.text()), n, consentiBackup)) err++; } catch { err++; } }
   esito(n, err);
 }
 function importaTesto(t) {
-  const n = { idee: 0, spese: 0, riserv: false, backup: false }; let err = 0;
-  const a = /#attiva=([A-Za-z0-9_-]+)/.exec(t);
-  if (a) { attivaToken(a[1]); salva(); render(); return; }
+  const n = { spese: 0, riserv: false, backup: false }; let err = 0;
   const b = /LIT3B:([A-Za-z0-9+/=]+)/.exec(t), m = /LIT1:([A-Za-z0-9+/=]+)/.exec(t);
   try {
-    if (b) { if (confirm("Il backup sostituisce idee, spese, note e valigia di questo telefono. Continuare?")) { if (!applica(JSON.parse(daB64(b[1])), n, true)) err++; } else return; }
+    if (b) { if (confirm("Il backup sostituisce spese, note e valigia di questo telefono. Continuare?")) { if (!applica(JSON.parse(daB64(b[1])), n, true)) err++; } else return; }
     else if (!applica(JSON.parse(m ? daB64(m[1]) : t), n)) err++;
   } catch { err++; }
   esito(n, err);
 }
 const recente = x => !x.del || x.ts > Date.now() - 30 * 864e5;
-const pacchetto = () => ({ app: "londra-in-tasca", v: 3, autore: S.me, esportato: Date.now(), idee: S.idee.filter(recente), spese: S.spese.filter(recente) });
+const pacchetto = () => ({ app: "londra-in-tasca", v: 3, autore: S.me, esportato: Date.now(), spese: S.spese.filter(recente) });
 const aB64 = s => { let r = ""; new TextEncoder().encode(s).forEach(x => { r += String.fromCharCode(x); }); return btoa(r); };
 const daB64 = s => new TextDecoder().decode(Uint8Array.from(atob(s), c => c.charCodeAt(0)));
-const messaggio = () => `Londra in tasca: le mie idee, voti e spese. Incollalo in Altro, Scambio.\nLIT1:${aB64(JSON.stringify(pacchetto()))}`;
+const messaggio = () => `Londra in tasca: le mie spese. Incollalo in Altro, Sistema.\nLIT1:${aB64(JSON.stringify(pacchetto()))}`;
 function nomeFile(prefisso) {
   const d = new Date(), p = n => String(n).padStart(2, "0");
   return `${prefisso}-${(S.me || "anon").replace(/[^\w-]/g, "")}-${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}.json`;
@@ -719,43 +604,23 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { const t = 
 /* ---------- azioni ---------- */
 const trova = (k, id) => S[k].find(x => x.id === id && !x.del);
 const azioni = {
-  tab(v) { const dir = ORD_TAB.indexOf(v) >= ORD_TAB.indexOf(tab) ? 1 : -1; vt(() => { tab = v; msg = ""; edit = null; bozza = null; scrollTo(0, 0); render(); focaTitolo(); cascata(); }, dir); },
+  tab(v) { const dir = ORD_TAB.indexOf(v) >= ORD_TAB.indexOf(tab) ? 1 : -1; vt(() => { tab = v; msg = ""; edit = null; scrollTo(0, 0); render(); focaTitolo(); cascata(); }, dir); },
   vai(v) {
     const [t, s] = String(v).split(":");
-    if (t === "idee" && s === "mie") filtroS = "mie";
+    if (t === "idee" && s === "mie" && typeof Sond !== "undefined") Sond.filtraMie();
     if (t === "altro" && s) sub = s;
     if (t === "viaggio" && s) vsub = s;
     azioni.tab(t);
   },
   vsub(v) { const dir = v === "prenot" ? 1 : -1; vt(() => { vsub = v; msg = ""; render(); cascata(); }, dir); },
   giorno(v) { const dir = +v >= g ? 1 : -1; vt(() => { g = +v; render(); annunciaGiorno(); }, dir); },
-  sub(v) { const ordine = ["scambio", "valigia", "cambio", "frasi", "sistema"], dir = ordine.indexOf(v) >= ordine.indexOf(sub) ? 1 : -1; vt(() => { sub = v; msg = ""; render(); cascata(); }, dir); },
-  filtro(v) { filtroG = v === "" ? null : v; render(); },
-  filtroS(v) { filtroS = v === "" ? null : v; render(); },
-  filtroC(v) { filtroC = v === "" ? null : v; render(); },
-  ordine(v) { ordine = v; render(); },
-  vota(v) {
-    const [id, k] = String(v).split(":"), i = trova("idee", id); if (!i || +i.stato !== 0) return;
-    if (!possoVotare()) { dire(S.me ? "Il sondaggio è riservato ai quattro adulti del gruppo." : "Scegli prima il tuo nome: in alto nella pagina Idee.", "avv"); render(); return; }
-    const n = +k, nuovo = miVoto(i) !== n; i.voti = i.voti || {}; i.voti[S.me] = [nuovo ? n : 0, nuovoTs(i.voti[S.me] && i.voti[S.me][1])]; tic(); if (nuovo && n === 1) scintille(...ultimoTocco, 12); salva(); render();
-  },
-  chiudi(v) {
-    const [id, e] = String(v).split(":"), i = trova("idee", id), n = +e; if (!i || !possoChiudere(i) || ![0, 1, 2, 3].includes(n)) return;
-    if (n === 1 || n === 2) {
-      const k = conteggio(i);
-      if (((n === 1 && k.esito === "respinta") || (n === 2 && k.esito === "approvata")) && !confirm(`La maggioranza dei votanti è per «${k.esito}». Chiudere comunque come «${STATI[n]}»?`)) return;
-    }
-    i.stato = n; i.chiusoDa = n ? S.me : ""; i.ts = nuovoTs(i.ts); salva(); render(); if (n === 1) { scintille(...ultimoTocco, 34); tic(18); di("Idea approvata."); }
-  },
-  modIdea(v) { edit = { k: "idee", id: v }; bozza = null; scrollTo(0, 0); render("#i-testo"); },
+  sub(v) { const ordine = ["valigia", "cambio", "frasi", "sistema"], dir = ordine.indexOf(v) >= ordine.indexOf(sub) ? 1 : -1; vt(() => { sub = v; msg = ""; render(); cascata(); }, dir); },
   modSpesa(v) { edit = { k: "spese", id: v }; scrollTo(0, 0); render("#s-desc"); },
-  annulla() { edit = null; bozza = null; render(); },
-  delIdea(v) { const i = trova("idee", v); if (i && confirm("Eliminare l'idea?")) { i.del = true; i.ts = nuovoTs(i.ts); salva(); render(); focaTitolo(); } },
+  annulla() { edit = null; render(); },
   delSpesa(v) { const s = trova("spese", v); if (s && confirm("Eliminare la spesa?")) { s.del = true; s.ts = nuovoTs(s.ts); salva(); render(); focaTitolo(); } },
   fatto(v) { S.fatti[v] = !S.fatti[v]; tic(8); salva(); render(); },
   nota(_, el) { const k = el.dataset.v, t = el.value.trim(); if (t) S.note[k] = { t, ts: Date.now() }; else delete S.note[k]; salva(); },
   cambio(_, el) { const n = Number(String(el.value).replace(",", ".")); S.cambio = n > 0 ? n : 0; S.cambioQ = 0; S.cambioData = ""; salva(); render(); },
-  syncOra() { SyncX.ora().then(() => render()); },
   onda(_, el) { if (calmo()) return; el.classList.remove("accendi", "onda"); void el.getBoundingClientRect(); el.classList.add("onda"); tic(6); setTimeout(() => el.classList.remove("onda"), 1500); },
   finestra(v, el) {
     const i = +v, d = TRIP.giorni[i]; if (!d) return;
@@ -766,8 +631,8 @@ const azioni = {
     const inf = $(".avvento-info"); if (inf) inf.textContent = `Giorno ${i + 1}: ${d.titolo}.`; di(`Finestra aperta. Giorno ${i + 1}: ${d.titolo}.`);
     el.setAttribute("aria-label", `Giorno ${i + 1}: ${d.titolo}. Tocca per aprire il giorno`);
   },
-  me(v) { S.me = v; salva(); msg = ""; render(); avvisaVoti(); },
-  reset() { if (confirm("Cancellare idee, spese, note e dati riservati da questo telefono?")) { S = vuoto(); salva(); msg = ""; render(); } },
+  me(v) { S.me = v; salva(); msg = ""; render(); },
+  reset() { if (confirm("Cancellare spese, note e dati riservati da questo telefono?")) { S = vuoto(); salva(); msg = ""; render(); } },
   mov(v) { if (!["auto", "on", "off"].includes(v)) return; S.mov = v; salva(); applicaMov(); render(); },
   valP(v) { S.valP = v; salva(); render(); },
   profilo(v) { if (S.valP) { if (v) S.profili[S.valP] = v; else delete S.profili[S.valP]; salva(); render(); } },
@@ -785,13 +650,11 @@ const azioni = {
     render();
   },
   importa(_, el) { importaFile([...el.files], false); },
-  ripristina(_, el) { if (el.files[0] && confirm("Il backup sostituisce idee, spese, note e valigia di questo telefono. Continuare?")) importaFile([el.files[0]], true); },
+  ripristina(_, el) { if (el.files[0] && confirm("Il backup sostituisce spese, note e valigia di questo telefono. Continuare?")) importaFile([el.files[0]], true); },
   importaTesto() { const t = $("#incolla").value.trim(); if (!t) { dire("Incolla prima il messaggio ricevuto.", "avv"); render(); return; } importaTesto(t); },
   togliRiserv() { if (confirm("Rimuovere i dati riservati da questo telefono?")) { S.riserv = null; salva(); render(); } },
   async copiaCodice() { dire((await copia(messaggio())) ? "Testo copiato: incollalo in un messaggio." : "Copia non riuscita: usa «Condividi il file».", ""); render(); },
   async copiaSpese() { dire((await copia(riepilogoSpese())) ? "Riepilogo copiato." : "Copia non riuscita."); render(); },
-  invita() { const l = linkAttiva(); if (!l) return; window.open("https://wa.me/?text=" + encodeURIComponent("Londra in tasca: tocca il link per attivare idee e sondaggi condivisi su questo telefono, poi scegli il tuo nome. Il link è riservato al gruppo, non inoltrarlo.\n" + l), "_blank", "noopener"); },
-  async copiaInvito() { dire((await copia(linkAttiva())) ? "Link copiato: incollalo in un messaggio al gruppo." : "Copia non riuscita.", ""); render(); },
   async whatsapp() {
     const t = messaggio(), url = "https://wa.me/?text=" + encodeURIComponent(t);
     if (url.length > 3500) { dire((await copia(t)) ? "Messaggio lungo, copiato: aprilo in WhatsApp e incolla." : "Messaggio troppo lungo: usa «Condividi il file».", "avv"); render(); return; }
@@ -818,14 +681,6 @@ const azioni = {
   }
 };
 const moduli = {
-  idea(d) {
-    const testo = String(d.get("testo") || "").trim(); if (!testo) return;
-    const id = d.get("id"), campi = { testo, link: normLink(d.get("link")), nota: String(d.get("nota") || "").trim(), giorno: +d.get("giorno") || 0, cat: catOk(IDEE_CAT, d.get("cat")) };
-    const x = id && trova("idee", id);
-    if (x) Object.assign(x, campi, { ts: nuovoTs(x.ts) });
-    else S.idee.push(Object.assign({ id: uid(), stato: 0, voti: possoVotare() ? { [S.me]: [1, Date.now()] } : {}, autore: S.me, chiusoDa: "" }, campi, { ts: Date.now() }));
-    edit = null; bozza = null; msg = ""; tic(); salva(); render(); focaTitolo(); di(x ? "Modifica salvata." : "Idea aggiunta.");
-  },
   spesa(d) {
     const importo = Number(String(d.get("importo")).replace(",", ".")), desc = String(d.get("desc") || "").trim();
     if (!(importo > 0) || importo > 1e6 || !desc || !nomeOk(d.get("chi"))) return;
@@ -842,8 +697,6 @@ document.addEventListener("change", e => {
 document.addEventListener("input", e => {
   const tn = e.target.closest('textarea[data-chg="nota"]');
   if (tn) { azioni.nota("", tn); return; }
-  const f = e.target.closest('form[data-form="idea"]');
-  if (f && !edit) { const d = new FormData(f); bozza = { testo: String(d.get("testo") || ""), link: String(d.get("link") || ""), nota: String(d.get("nota") || ""), giorno: +d.get("giorno") || 0, cat: String(d.get("cat") || "") }; return; }
   const t = e.target.closest("[data-conv]"); if (!t || !(S.cambio > 0)) return;
   const altro = $(t.dataset.conv === "gbp" ? "#c-eur" : "#c-gbp"), v = Number(String(t.value).replace(",", "."));
   if (altro) altro.value = Number.isFinite(v) && t.value !== "" ? (Math.round((t.dataset.conv === "gbp" ? v * S.cambio : v / S.cambio) * 100) / 100).toFixed(2) : "";
@@ -859,13 +712,14 @@ document.addEventListener("touchend", e => {
 }, { passive: true });
 
 /* ---------- condivisione da altre app, offline, aggiornamenti, neve ---------- */
-attivaDaLink(); addEventListener("hashchange", () => { if (attivaDaLink()) render(); });
+/* idea condivisa da un'altra app: sondaggio.js apre il modulo già compilato */
+let condiviso = null;
 (function daCondivisione() {
   const p = new URLSearchParams(location.search);
   if (!(p.has("url") || p.has("text") || p.has("title"))) return;
   const link = primoLink([p.get("url"), p.get("text")].filter(Boolean).join(" "));
   const testo = (p.get("title") || p.get("text") || "").replace(link, "").trim().slice(0, 200);
-  bozza = { testo, link, nota: "" }; tab = "idee"; dire("Idea precompilata dalla condivisione: controlla e premi «Aggiungi idea».");
+  condiviso = { testo, link, nota: "" }; tab = "idee";
   try { history.replaceState(null, "", location.pathname); } catch { /* ok */ }
 })();
 if ("serviceWorker" in navigator) {
@@ -901,7 +755,7 @@ if ("serviceWorker" in navigator) {
 applicaMov(); riduci.addEventListener("change", () => { applicaMov(); render(); });
 const aggiornaRete = () => { const o = $("#offline"); if (o) o.hidden = navigator.onLine; };
 addEventListener("online", aggiornaRete); addEventListener("offline", aggiornaRete); aggiornaRete();
-render(); cascata(); avvisaVoti(); SyncX.start(); setTimeout(saluti, 900);
+render(); cascata(); setTimeout(saluti, 900);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) setTimeout(saluti, 600); });
 setInterval(() => { if (tab === "viaggio" && vsub === "itin") aggiornaAdesso(); else if (tab === "oggi" && !document.activeElement.closest("form,textarea,input")) render(); }, 60000);
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch { /* ok */ }

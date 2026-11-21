@@ -1,11 +1,11 @@
 /* Dati pubblici del viaggio. Qui NON vanno codici di prenotazione né nominativi: stanno nel file riservato, importato dall'app. */
-const IDEE_CAT = [["mangiare", "Mangiare"], ["vedere", "Vedere"], ["shopping", "Shopping"], ["divertimento", "Divertimento"], ["altro", "Altro"]];
 const SPESE_CAT = [["cibo", "Cibo"], ["trasporti", "Trasporti"], ["ingressi", "Ingressi"], ["shopping", "Shopping"], ["altro", "Altro"]];
 const ADULTI = ["uomo", "donna"];
 const TUTTI = ["uomo", "donna", "bambina"];
 const TRIP = {
   partenza: "2026-12-23T19:10:00",
   organizzatore: "Francesco",
+  sintesiVoli: "Andata mer 23/12 alle 19:10 a Stansted, ritorno dom 27/12 alle 20:55 da Luton",
   gruppoDefault: ["Francesco", "Sara", "Rosa", "Giuliano"],
   alloggio: { testo: "77 Caledonian Road, Islington, Londra, N1 9BT, Regno Unito", q: "77 Caledonian Road, Islington, London N1 9BT, UK" },
   giorni: [
