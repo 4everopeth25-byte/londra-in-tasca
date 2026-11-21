@@ -342,3 +342,58 @@ article.scheda.acceso::after{animation:spunta .6s .15s var(--molla) both}
 /* 11. il giorno di oggi manda un impulso */
 .giorno.oggi{animation:alone 2.4s ease-out infinite}
 @keyframes alone{from{box-shadow:var(--ombra-s),0 0 0 0 rgba(255,90,77,.7)}to{box-shadow:var(--ombra-s),0 0 0 12px rgba(255,90,77,0)}}
+
+/* Grafico dei voti nella pagina Idee */
+.grafico summary{cursor:pointer;font-weight:700;min-height:44px;display:flex;align-items:center}
+.gr-leg{display:flex;gap:14px;flex-wrap:wrap;margin:4px 0 6px;font-size:.8125rem;font-weight:600}
+.gr-leg span::before{content:"";display:inline-block;width:12px;height:12px;border:2px solid var(--ink);border-radius:4px;margin-right:6px;vertical-align:-2px;background:var(--tenue)}
+.gr-leg .s::before,.gr-barra .s{background:var(--si)}.gr-leg .n::before,.gr-barra .n{background:var(--no)}.gr-leg .d::before,.gr-barra .d{background:var(--burro)}
+.gr-leg .m::before,.gr-barra .m{background:repeating-linear-gradient(45deg,var(--tenue) 0 5px,#fff 5px 10px)}
+.gr-riga{display:block;width:100%;min-height:44px;text-align:left;font:inherit;color:var(--ink);background:var(--carta);border:2px solid var(--ink);border-radius:14px;padding:12px;margin:10px 0 0;cursor:pointer;box-shadow:0 3px 0 var(--ink)}
+.gr-riga:active{transform:translateY(2px);box-shadow:0 1px 0 var(--ink)}
+.gr-t{display:block;font-weight:700;margin-bottom:8px}
+.gr-barra{display:flex;height:18px;border:2px solid var(--ink);border-radius:9px;overflow:hidden;background:var(--tenue)}
+.gr-barra i{display:block;height:100%;transform-origin:left center}
+.gr-barra i+i{border-left:2px solid var(--ink)}
+.gr-riga.anima .gr-barra i{animation:cresce .7s cubic-bezier(.2,.8,.2,1) both;animation-delay:calc(var(--i,0)*90ms)}
+@keyframes cresce{from{transform:scaleX(0)}}
+.gr-nomi{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px}
+.gr-nomi b{font-size:.8125rem;font-weight:600;padding:3px 10px;border-radius:999px;border:2px solid var(--ink);color:var(--ink)}
+.gr-nomi .s{background:var(--menta)}.gr-nomi .n{background:#ffd2cc}.gr-nomi .d{background:var(--burro)}
+.gr-nomi .m{background:transparent;border-style:dashed;color:var(--muto)}
+
+/* ==== Cartolina vittoriana (21/11/2026): crema, doppia cornice dorata, verde agrifoglio e rosso bacca, angoli arrotondati ==== */
+@font-face{font-family:"Playfair Display";src:url("fonts/PlayfairDisplay.ttf") format("truetype");font-weight:400 900;font-display:swap}
+@font-face{font-family:"Mountains of Christmas";src:url("fonts/MountainsofChristmas-Bold.ttf") format("truetype");font-weight:700;font-display:swap}
+
+/* 4 · Cartolina vittoriana: carta crema con doppia cornice dorata, verde agrifoglio e rosso bacca, titoli a mano, candele di Dickens */
+:root{--fondo:#f4ead5;--carta:#fffaf0;--ink:#2a1d14;--muto:#5a4a3b;--burro:#e8c36a;--rosa:#e9b7a6;--pom:#9d1c24;--menta:#d9e6cf;--blu:#1f4d3a;--notte:#173a2b;--mare:#2d5a42;--si:#3d7a52;--no:#9d1c24;--ok:#1f5a38;--rosso-t:#8a1620;--allerta:#8a1620;--tenue:#eadcbc;
+  --insegna:"Mountains of Christmas","Playfair Display",Georgia,serif;--sans:"Playfair Display",Georgia,"Times New Roman",serif;--r:18px;--ombra:0 3px 0 #c9b88f,0 7px 14px rgba(60,40,20,.18);--ombra-s:0 2px 0 #c9b88f}
+body::before{background:repeating-linear-gradient(0deg,rgba(120,90,50,.045) 0 2px,transparent 2px 4px),radial-gradient(40% 30% at 15% 20%,rgba(157,28,36,.12),transparent 70%),radial-gradient(40% 32% at 85% 15%,rgba(31,77,58,.14),transparent 70%),radial-gradient(44% 36% at 75% 85%,rgba(232,195,106,.35),transparent 70%)}
+body::after{background-image:radial-gradient(circle,#9d1c24 0 3px,transparent 3.5px),radial-gradient(circle,#2d5a42 0 2.5px,transparent 3px),radial-gradient(circle,#c9a24a 0 2px,transparent 2.5px)}
+body,button,input,select{font-variant-numeric:lining-nums}
+h2,h3{font-weight:700;font-size:1.5rem}
+.vt,.fascia{background:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 40'%3E%3Cpath d='M6 26c8-15 22-15 28-6-8 2-18 2-28 6z' fill='%233a8a56'/%3E%3Cpath d='M30 30c10-13 24-11 30-2-8 0-20 4-30 2z' fill='%232c7a47'/%3E%3Ccircle cx='30' cy='21' r='5' fill='%23d02a31'/%3E%3Ccircle cx='38' cy='26' r='5' fill='%23b8222a'/%3E%3Ccircle cx='23' cy='27' r='4.5' fill='%23d02a31'/%3E%3C/svg%3E") right 14px bottom 8px/64px 40px no-repeat,linear-gradient(135deg,#1f4d3a,#14382a);color:#f7e7b4;border:2px solid #c9a24a;border-radius:24px;box-shadow:var(--ombra);font-size:2rem;font-weight:700;outline:1px solid #c9a24a;outline-offset:-7px;padding-right:84px}
+.fascia::after{display:none}
+.fascia p{color:#efe0b8}
+.lampada{fill:#e8c36a}.lampada.l1{fill:#d02a31}.lampada.l2{fill:#6fbf86}
+.guida{background:#1f4d3a;color:#f7e7b4;border-bottom:3px double #c9a24a}
+.giorno{border-radius:16px}.giorno[aria-pressed="true"]{background:var(--blu);color:#f7e7b4;transform:translateY(-3px)}
+.tl li::before{background:none;width:0;border-left:4px dotted var(--pom);border-radius:0;left:calc(var(--col) + 8px)}
+.tl .scheda::before{background:var(--pom);border:3px solid #6b0f16}
+.tl li.in-corso .scheda{background:linear-gradient(145deg,#1f4d3a,#14382a);border-color:#c9a24a}.tl li.in-corso .scheda::before{background:var(--burro);border-color:#6b0f16}
+.tl li.prossima .scheda,.scheda.tratt{background:#fbf3df}
+.scheda{border:2px solid #b89b5e;outline:1px solid #b89b5e;outline-offset:-7px;border-radius:18px}
+.tl li.in-corso .scheda,div.scheda.acceso{outline-color:rgba(247,231,180,.5)}
+.btn,a.map{border-radius:16px;border-color:#2a1d14;background:#fffaf0}.chip{background:#fffaf0}
+.btn.pri,a.map.pri{background:var(--pom);color:#fff}
+@media (hover:hover){.btn:hover,a.map:hover{background:var(--burro)}.btn.pri:hover,a.map.pri:hover{background:#b52a32}}
+.dock{background:#173a2b;border:2px solid #c9a24a;border-radius:30px;box-shadow:0 5px 0 rgba(0,0,0,.2)}
+.dock button{color:#e8dcc0}.dock button[aria-current="page"]{color:#2a1d14}
+.dock .ind::after{background:var(--burro);border:1px solid #c9a24a;border-radius:24px;box-shadow:none}
+.finestra .porta{background:var(--pom)}.finestra .porta b{color:#f7e7b4}
+.popup{background:linear-gradient(160deg,#fffaf0,#f1dfb0);border:4px double var(--pom);border-radius:28px;box-shadow:0 10px 0 rgba(60,40,20,.25)}.popup-titolo{color:var(--pom);font-size:2.4rem}
+.tot,.tratta b{font-weight:700}
+.codice{background:var(--burro)}
+
+.elenco{border-radius:18px}.msg{border-radius:16px}.finestra .dietro,.finestra .porta{border-radius:16px}.codice{border-radius:12px}

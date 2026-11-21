@@ -360,6 +360,26 @@ const Sond = (() => {
       <h2 class="h-sez">Commenti</h2>${cm.length ? cm.map(c => `<div class="scheda"><div class="desc"><b>${esc(nomeDi(c.participant_id))}</b> <span class="mute">${cella(c.created_at)}</span></div><div>${esc(c.testo)}</div>${me && (c.participant_id === me.id || gestI()) ? `<div class="riga"><button class="btn rosso" data-az="s_delcom" data-v="${c.id}">Elimina</button></div>` : ""}</div>`).join("") : `<div class="mute">Nessun commento.</div>`}
       ${me && !chiusoG ? `<form class="f" data-form="s_commento"><input type="hidden" name="pid" value="${p.id}"><label class="mute" for="s-co">Scrivi un commento</label><input id="s-co" name="testo" required maxlength="500"><button class="btn pri" type="submit">Pubblica</button></form>` : ""}`;
   }
+  /* Grafico dei voti: una barra per idea (Sì, No, Non so, manca) e i nomi di chi ha votato cosa. Il testo del bottone riassume tutto per i lettori di schermo. */
+  function graficoVoti(l) {
+    if (!l.length) return "";
+    const nomi = (camp.nomi_ammessi && camp.nomi_ammessi.length) ? camp.nomi_ammessi : PA.map(x => x.nome);
+    const an = !I.grVisto; I.grVisto = true;
+    const GR = [[1, "s", "✓", "Sì"], [-1, "n", "✕", "No"], [0, "d", "?", "Non so"], [null, "m", "–", "Non ha votato"]];
+    const righe = [...l].sort((a, b) => (conta(b.id).s - conta(b.id).n) - (conta(a.id).s - conta(a.id).n) || new Date(b.created_at) - new Date(a.created_at)).map(p => {
+      const per = new Map(V.filter(x => x.proposal_id === p.id).map(x => [nomeDi(x.participant_id).toLowerCase(), x.valore]));
+      const st = nomi.map(n => ({ n, v: per.has(n.toLowerCase()) ? per.get(n.toLowerCase()) : null }));
+      const riass = GR.map(([v, , , t]) => { const x = st.filter(y => y.v === v).map(y => y.n); return x.length ? `${t}: ${x.join(", ")}` : ""; }).filter(Boolean).join(". ");
+      let k = 0;
+      const barra = GR.map(([v, c]) => { const n = st.filter(y => y.v === v).length; return n ? `<i class="${c}" style="flex:${n};--i:${k++}"></i>` : ""; }).join("");
+      const chip = st.map(y => { const g = GR.find(z => z[0] === y.v); return `<b class="${g[1]}"><span aria-hidden="true">${g[2]}</span> ${esc(y.n)}</b>`; }).join("");
+      return `<button class="gr-riga${an ? " anima" : ""}" data-az="i_det" data-v="${p.id}" aria-label="${esc(p.titolo)}, ${STATI[p.stato]}. ${esc(riass)}. Apri i dettagli e i commenti."><span class="gr-t">${esc(p.titolo)}<span class="et">${STATI[p.stato]}</span></span><span class="gr-barra" aria-hidden="true">${barra}</span><span class="gr-nomi" aria-hidden="true">${chip}</span></button>`;
+    }).join("");
+    const pers = nomi.map(n => { const x = l.filter(p => V.some(v => v.proposal_id === p.id && nomeDi(v.participant_id).toLowerCase() === n.toLowerCase())).length; return `<b class="${x === l.length ? "s" : x ? "d" : "m"}">${esc(n)} ${x}/${l.length}</b>`; }).join("");
+    return `<details class="scheda grafico" open><summary>Grafico dei voti</summary>
+      <div class="gr-leg" aria-hidden="true">${GR.map(([, c, , t]) => `<span class="${c}">${t === "Non ha votato" ? "Manca" : t}</span>`).join("")}</div>${righe}
+      <div class="desc" style="margin-top:12px"><b>Chi ha votato</b>, idee votate su ${l.length}:</div><div class="gr-nomi gr-pers">${pers}</div></details>`;
+  }
   function vistaIdee() {
     try { return vistaIdeeBase(); } catch (e) { return `<h1 class="vt">Idee</h1><div class="msg avv"><b>Errore nella pagina.</b> ${esc(e && e.message)}</div><div class="riga"><button class="btn" data-az="i_riprova">Riprova</button></div>`; }
   }
@@ -376,6 +396,7 @@ const Sond = (() => {
       <details class="scheda nuova"${I.nuova || I.modif ? " open" : ""}><summary>Nuova idea</summary>${formIdea(I.modif && P.find(p => p.id === I.modif) || {})}</details>
       <div class="chips" role="group" aria-label="Filtra per stato">${stati}</div><div class="chips" role="group" aria-label="Filtra per categoria">${cats}</div>
       <div class="chips" role="group" aria-label="Ordine"><button class="chip" data-az="i_ord" data-v="recenti" aria-pressed="${I.ord !== "voti"}">Più recenti</button><button class="chip" data-az="i_ord" data-v="voti" aria-pressed="${I.ord === "voti"}">Più votate</button></div>
+      ${graficoVoti(l)}
       ${l.length ? l.map(schedaI).join("") : `<div class="scheda"><div class="desc">${P.length ? "Nessuna idea con questi filtri." : "Ancora nessuna idea: aggiungi la prima."}</div></div>`}`;
   }
   const banner = () => (caricato && !camp && gruppoVis && !errore ? `<div class="msg avv" role="status"><b>Scegli chi sei per vedere e votare le idee del gruppo.</b><div class="riga"><button class="btn" data-az="vai" data-v="idee">Apri Idee</button></div></div>` : "");
