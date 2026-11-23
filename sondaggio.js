@@ -18,7 +18,8 @@ const Sond = (() => {
   let firmaG = "";
   const dopo = () => {
     if (typeof aggiornaBadge === "function") aggiornaBadge();
-    const f = JSON.stringify(P.filter(p => p.stato === 1 && p.giorno).map(p => [p.id, p.giorno, p.titolo])), cambiata = f !== firmaG; firmaG = f;
+    const f = JSON.stringify(P.filter(p => p.stato === 1).map(p => [p.id, p.giorno, p.titolo, p.categoria, p.descrizione])), cambiata = f !== firmaG; firmaG = f;
+    if (cambiata && typeof ricomponi === "function") ricomponi();
     const t = typeof tab !== "undefined" ? tab : "";
     if ((t === "idee" || t === "oggi" || (t === "viaggio" && cambiata)) && libero()) render();
   };
@@ -209,7 +210,7 @@ const Sond = (() => {
   });
   /* idea precompilata da «Condividi» di un'altra app (TikTok, Instagram, Maps): il modulo si apre già scritto */
   const precompila = b => { I.bozza = { titolo: b.testo || "", sito_url: b.link || "", descrizione: b.nota || "" }; I.nuova = true; };
-  return { vistaIdee, banner, sveglia, precompila, ideeGiorno: n => P.filter(p => p.stato === 1 && p.giorno === n).map(p => ({ titolo: p.titolo, categoria: catNome(p.categoria), descrizione: p.descrizione || "" })), daVotare: () => (me ? P.filter(daVotareI).length : 0), filtraMie: () => { I.s = "mie"; } };
+  return { vistaIdee, banner, sveglia, precompila, approvate: () => P.filter(p => p.stato === 1).map(p => ({ id: p.id, titolo: p.titolo, categoria: p.categoria, descrizione: p.descrizione || "", giorno: p.giorno || 0, created_at: p.created_at, autore: nomeDi(p.participant_id) })), daVotare: () => (me ? P.filter(daVotareI).length : 0), filtraMie: () => { I.s = "mie"; } };
 })();
 
 if (typeof condiviso !== "undefined" && condiviso) Sond.precompila(condiviso);

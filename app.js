@@ -157,6 +157,67 @@ function aggiornaBadge() {
   if (bt) { if (dv) bt.setAttribute("aria-label", `Idee, ${dv} da votare`); else bt.removeAttribute("aria-label"); }
 }
 
+/* ---------- idee approvate: collocate da sole nel giorno e nell'ora più adatti ---------- */
+/* Regole (uguali su tutti i telefoni, perché dipendono solo dalle idee approvate e da dati.js): giorno meno pieno e vicino alle altre tappe, rispetto dei giorni
+   di chiusura noti, ora tipica della categoria (musei al mattino, ristoranti a pranzo, locali la sera). Se chi propone ha indicato un giorno, vale quello se è possibile. */
+TRIP.giorni.forEach((d, gi) => { d.base = d.tappe; d.tappe.forEach((t, i) => { t.k = `${gi}-${i}`; }); });
+let luoghiNoti = [];
+const norm = t => String(t || "").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+const luogoNoto = t => { const n = norm(t); return luoghiNoti.find(l => l.k.some(k => n.includes(norm(k)))) || null; };
+const DURATA = { attrazioni: 90, musei: 120, esperienze: 120, ristoranti: 75, locali: 90, shopping: 90, parchi: 75, altro: 60 };
+const PREF = { attrazioni: 840, musei: 660, esperienze: 900, ristoranti: 780, locali: 1260, shopping: 930, parchi: 630, altro: 960 };
+const kmTra = (a, b) => { const p = Math.PI / 180, x = (b[1] - a[1]) * p * Math.cos((a[0] + b[0]) / 2 * p), y = (b[0] - a[0]) * p; return 6371 * Math.hypot(x, y); };
+const CHIUSI_24_26 = ["2026-12-24", "2026-12-25", "2026-12-26"];
+function chiusura(idea, lu, cat, iso) {
+  const n = norm(idea.titolo + " " + idea.descrizione);
+  if (CHIUSI_24_26.includes(iso) && (/tower of london|torre di londra|natural history|storia naturale/.test(n))) return { m: "chiuso dal 24 al 26 dicembre", ok: true };
+  if (CHIUSI_24_26.includes(iso) && (cat === "musei" || (lu && lu.c === "musei"))) return { m: "i musei di solito sono chiusi dal 24 al 26 dicembre (da verificare)", ok: false };
+  if (iso === "2026-12-25" && ["shopping", "attrazioni", "esperienze"].includes(cat)) return { m: "il 25 dicembre quasi tutto è chiuso (da verificare)", ok: false };
+  return null;
+}
+const ORA_PER = { attrazioni: "le attrazioni", musei: "i musei", esperienze: "le esperienze", ristoranti: "i ristoranti", locali: "i locali", shopping: "lo shopping", parchi: "i parchi", altro: "questa idea" };
+const giaPresente = idea => { const a = norm(idea.titolo).trim(); return a.length >= 4 && TRIP.giorni.some(d => d.base.some(t => { const b = norm(t.nome); return b.includes(a) || (b.length >= 6 && a.includes(b)); })); };
+function collocaIdee(lista) {
+  const out = TRIP.giorni.map(() => []), n = TRIP.giorni.length, FINE = TRIP.giorni.map((_, i) => (i === n - 1 ? 14 * 60 : 22 * 60 + 30));
+  const ord = [...lista].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)));
+  for (const idea of ord) {
+    if (giaPresente(idea)) continue;
+    const lu = luogoNoto(idea.titolo + " " + (idea.descrizione || "")), cat = DURATA[idea.categoria] ? idea.categoria : "altro", ll = lu ? lu.ll : null, scarti = [];
+    const possibili = TRIP.giorni.map((d, gi) => { const c = chiusura(idea, lu, cat, d.iso); if (c) { scarti.push(`giorno ${gi + 1}: ${c.m}`); return null; } return gi; }).filter(x => x !== null);
+    const richiesto = idea.giorno >= 1 && idea.giorno <= n ? idea.giorno - 1 : -1, usaRichiesto = richiesto >= 0 && possibili.includes(richiesto);
+    const cand = usaRichiesto ? [richiesto] : (possibili.length ? possibili : TRIP.giorni.map((_, i) => i));
+    let best = null;
+    for (const gi of cand) {
+      const d = TRIP.giorni[gi], tp = d.base.filter(t => orario(t.ora) != null), fissi = tp.map(t => orario(t.ora)).concat(out[gi].map(t => orario(t.ora)));
+      let sc = tp.length * 6 + out[gi].length * 10, ora = PREF[cat];
+      if (gi === 0) sc += 300;
+      if (d.iso === "2026-12-25" && !["parchi", "ristoranti"].includes(cat)) sc += 60; else if (d.iso === "2026-12-25") sc += 25;
+      let vicina = null;
+      if (ll) { for (const t of d.base) if (t.ll) { const k = kmTra(ll, t.ll); if (!vicina || k < vicina[0]) vicina = [k, t]; } if (vicina) sc += 8 * Math.min(vicina[0], 6); }
+      const urto = o => fissi.some(x => Math.abs(x - o) < 45);
+      if (urto(ora)) { const v = fissi.filter(x => Math.abs(x - ora) < 45).sort((a, b) => b - a)[0]; if (!urto(v + 90) && v + 90 <= FINE[gi]) ora = v + 90; }
+      const incastro = urto(ora) || ora > FINE[gi]; if (incastro) sc += gi === n - 1 ? 150 : 40;
+      if (!best || sc < best.sc) best = { gi, sc, ora, vicina, carico: tp.length, incastro };
+    }
+    const motivi = [];
+    if (usaRichiesto) motivi.push("è il giorno indicato da chi ha proposto l'idea");
+    else { if (richiesto >= 0) motivi.push(`il giorno ${richiesto + 1} indicato non va bene (${(scarti.find(x => x.startsWith("giorno " + (richiesto + 1))) || "giorno non adatto").replace(/^giorno \d: /, "")})`); if (best.vicina && best.vicina[0] < 2) motivi.push(`è vicino a «${best.vicina[1].nome}» (circa ${best.vicina[0].toFixed(1).replace(".", ",")} km)`); if (best.carico <= 6) motivi.push("ha poche tappe"); }
+    motivi.push(`l'ora indicativa è quella tipica per ${ORA_PER[cat]}`);
+    const nota = best.incastro ? " Il giorno è già pieno: incastrala dove trovi tempo o togli un'altra tappa." : "";
+    out[best.gi].push({ ora: `~${hhmm(Math.min(best.ora, FINE[best.gi]))}`, nome: idea.titolo, desc: [idea.descrizione, `Idea approvata${idea.autore ? ` (proposta da ${idea.autore})` : ""}. Messa al giorno ${best.gi + 1} perché ${motivi.join(", ")}.${nota}`].filter(Boolean).join(" "), q: idea.titolo, ll: ll || undefined, idea: true, k: "i-" + idea.id, durata: DURATA[cat] });
+  }
+  return out;
+}
+function ricomponi() {
+  const col = collocaIdee(typeof Sond !== "undefined" ? Sond.approvate() : []);
+  TRIP.giorni.forEach((d, gi) => {
+    const r = d.base.slice();
+    col[gi].sort((x, y) => orario(x.ora) - orario(y.ora)).forEach(t => { const o = orario(t.ora), k = r.findIndex(x => orario(x.ora) != null && orario(x.ora) > o); if (k < 0) r.push(t); else r.splice(k, 0, t); });
+    d.tappe = r;
+  });
+}
+fetch("mappa/luoghi.json").then(r => r.json()).then(x => { if (Array.isArray(x)) { luoghiNoti = x; ricomponi(); if ((tab === "viaggio" && vsub === "itin" || tab === "oggi") && typeof libero === "function" && libero()) render(); } }).catch(() => {});
+
 /* ---------- luce e meteo ---------- */
 /* alba e tramonto di Londra con l'algoritmo dell'Almanacco (precisione di un paio di minuti), calcolati sul telefono: funzionano senza rete.
    A dicembre Londra è sull'ora di Greenwich, quindi l'ora universale coincide con quella locale. */
@@ -198,7 +259,7 @@ function cartaMeteo(d) {
 
 /* ---------- promemoria con scadenza ---------- */
 const promemoriaOrdinati = () => [...TRIP.promemoria].sort((a, b) => ((a.data || "9999") < (b.data || "9999") ? -1 : (a.data || "9999") > (b.data || "9999") ? 1 : 0));
-const presto = () => { const lim = oggiIso(new Date(Date.now() + 7 * 864e5)); return promemoriaOrdinati().filter(p => p.data && p.data <= lim && !S.fatti["p_" + p.id]).slice(0, 3); };
+const presto = () => { const lim = oggiIso(new Date(Date.now() + 7 * 864e5)); return promemoriaOrdinati().filter(p => p.data && p.data <= lim && !S.fatti["p_" + p.id] && !(p.id === "mappa" && typeof Mappa !== "undefined" && Mappa.pronta())).slice(0, 3); };
 
 /* ---------- valigia ---------- */
 const persone = () => [...gruppo(), (S.riserv && S.riserv.bambina) || "Bambina"];
@@ -250,6 +311,7 @@ function vistaOggi() {
     <div class="elenco">${voce("bulb", "Idee da votare", dv ? "Tocca per votare" : "Nessuna in attesa", dv, "idee:mie", dv ? " allerta" : "")}</div>
     <h2 class="h-sez">In borsa</h2>
     <div class="elenco">
+      ${voce("pin", "Mappa e percorsi offline", typeof Mappa !== "undefined" && Mappa.pronta() ? "Pronta sul telefono, funziona senza rete" : "Da scaricare con il Wi-Fi prima di partire", "", "viaggio:mappa")}
       ${voce("plane", "Voli e prenotazioni", esc(TRIP.sintesiVoli), "", "viaggio:prenot")}
       ${voce("bag", "Valigia", vs && vs.tot ? `${esc(S.valP)}: ${vs.fatte} su ${vs.tot}` : "Scegli chi sei per la tua lista", "", "altro:valigia")}
       ${voce("key", "Frasi utili in inglese", "Taxi, ristoranti, metro e indirizzi da mostrare", "", "altro:frasi")}
@@ -262,25 +324,24 @@ function vistaOggi() {
 }
 
 function vistaViaggio() {
-  const seg = [["itin", "Itinerario"], ["prenot", "Prenotazioni"]].map(([v, l]) => `<button class="chip" data-az="vsub" data-v="${v}" aria-pressed="${vsub === v}">${l}</button>`).join("");
+  const seg = [["itin", "Itinerario"], ["prenot", "Prenotazioni"], ["mappa", "Mappa"]].map(([v, l]) => `<button class="chip" data-az="vsub" data-v="${v}" aria-pressed="${vsub === v}">${l}</button>`).join("");
   const chips = `<div class="chips" role="group" aria-label="Sezione del viaggio">${seg}</div>`;
   if (vsub === "prenot") return `<h1 class="vt">Prenotazioni</h1>${chips}${avviso()}${vistaPrenot()}`;
+  if (vsub === "mappa") return `<h1 class="vt">Mappa</h1>${chips}${avviso()}${typeof Mappa !== "undefined" ? Mappa.vista() : ""}`;
   return vistaItinerario(chips);
 }
 function vistaItinerario(chips) {
   const d = TRIP.giorni[g], oggi = statoOggi();
   const rail = TRIP.giorni.map((x, i) => `<button class="giorno${oggi && oggi.g === i ? " oggi" : ""}" data-az="giorno" data-v="${i}" aria-pressed="${i === g}" aria-label="Giorno ${i + 1}, ${esc(x.data)}${oggi && oggi.g === i ? ", oggi" : ""}"><b>${x.iso.slice(8)}</b><small>${esc(x.breve.split(" ")[1])}</small></button>`).join("");
   const tappe = d.tappe.map((t, i) => {
-    const nk = `${g}-${i}`, nt = (S.note[nk] && S.note[nk].t) || "", ha = orario(t.ora) != null;
+    const nk = t.k || `${g}-${i}`, nt = (S.note[nk] && S.note[nk].t) || "", ha = orario(t.ora) != null;
     const prec = t.q ? d.tappe.slice(0, i).reverse().find(x => x.q) : null, come = prec && qt(prec) !== qt(t) ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(prec), qt(t)], t.mezzo || d.mezzo)}">${ic("compass", 18)}Come arrivare<span class="vh"> a ${esc(t.nome)} da ${esc(prec.nome)}, si apre in una nuova scheda</span></a>` : "";
-    return `<li data-i="${i}"><div class="quando${ha ? "" : " testo"}">${esc(t.ora || "")}</div><div class="scheda"><div class="nome">${esc(t.nome)}</div>
+    return `<li data-i="${i}"><div class="quando${ha ? "" : " testo"}">${esc(t.ora || "")}</div><div class="scheda${t.idea ? " idea-auto" : ""}"><div class="nome">${esc(t.nome)}${t.idea ? `<span class="et">Idea approvata</span>` : ""}</div>
     ${t.desc ? `<div class="desc">${esc(t.desc)}</div>` : ""}
     <div class="riga">${t.costo ? `<span class="pill">${esc(t.costo)}</span>` : ""}${t.q ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(t)], d.mezzo)}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(t.nome)}, si apre in una nuova scheda</span></a>` : ""}${come}</div>
     <details class="nota-t"${nt ? " open" : ""}><summary>${nt ? "Nota personale" : "Aggiungi nota"}</summary>
     <textarea rows="2" maxlength="500" data-chg="nota" data-v="${nk}" aria-label="Nota personale per ${esc(t.nome)}" placeholder="Solo sul tuo telefono">${esc(nt)}</textarea></details></div></li>`;
   }).join("");
-  const approvate = typeof Sond !== "undefined" ? Sond.ideeGiorno(g + 1) : [];
-  const idee = approvate.length ? `<h2 class="h-sez">Idee approvate per questo giorno</h2>${approvate.map(p => `<div class="scheda"><div class="nome">${esc(p.titolo)}</div><div class="desc">${esc(p.categoria)}${p.descrizione ? `. ${esc(p.descrizione)}` : ""}</div><div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([p.titolo], d.mezzo)}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(p.titolo)}, si apre in una nuova scheda</span></a></div></div>`).join("")}` : "";
   const percorso = mapsUrl(d.tappe.map(qt), d.mezzo);
   const pub = d.pub ? `<div class="scheda pub"><div class="nome">Il pub del giorno: ${esc(d.pub.nome)}</div><div class="desc">${esc(d.pub.dove)}</div><div class="desc" style="margin-top:6px">${esc(d.pub.alt)}</div>
     <div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([d.pub.q], d.mezzo)}">${ic("pin", 18)}Mappa del pub<span class="vh">, si apre in una nuova scheda</span></a></div></div>` : "";
@@ -291,7 +352,6 @@ function vistaItinerario(chips) {
     <div id="adesso" hidden></div>
     ${cartaMeteo(d)}
     <ol class="tl">${tappe}</ol>
-    ${idee}
     ${d.pianoB ? `<details class="scheda nuova"><summary>Piano B se piove</summary><div class="desc">${esc(d.pianoB)}</div></details>` : ""}
     ${percorso ? `<p><a class="map pri" target="_blank" rel="noopener" href="${percorso}">${ic("compass", 18)}Percorso del giorno su Google Maps<span class="vh">, si apre in una nuova scheda</span></a></p>` : ""}
     <div class="riga"><button class="btn" data-az="ics" data-v="giorno">${ic("cal", 18)}Aggiungi il giorno al calendario</button><button class="btn" data-az="ics" data-v="tutto">Tutto il viaggio e le scadenze</button></div>
@@ -545,6 +605,7 @@ function render(foco) {
   const ind = $("#dock .ind"); if (ind) ind.style.transform = `translateX(${Math.max(0, ORD_TAB.indexOf(tab)) * 100}%)`;
   aggiornaAdesso();
   if (tab === "viaggio" && vsub === "itin") osservaGuida();
+  if (tab === "viaggio" && vsub === "mappa" && typeof Mappa !== "undefined") Mappa.monta();
   if (tab === "altro" && sub === "sistema") statoOffline();
 }
 async function statoOffline() {
@@ -689,7 +750,7 @@ const azioni = {
     if (t === "viaggio" && s) vsub = s;
     azioni.tab(t);
   },
-  vsub(v) { const dir = v === "prenot" ? 1 : -1; vt(() => { vsub = v; msg = ""; render(); cascata(); }, dir); },
+  vsub(v) { const dir = ["itin", "prenot", "mappa"].indexOf(v) >= ["itin", "prenot", "mappa"].indexOf(vsub) ? 1 : -1; vt(() => { vsub = v; msg = ""; render(); cascata(); }, dir); },
   giorno(v) { const dir = +v >= g ? 1 : -1; vt(() => { g = +v; render(); annunciaGiorno(); }, dir); },
   sub(v) { const ordine = ["valigia", "cambio", "frasi", "sistema"], dir = ordine.indexOf(v) >= ordine.indexOf(sub) ? 1 : -1; vt(() => { sub = v; msg = ""; render(); cascata(); }, dir); },
   modSpesa(v) { edit = { k: "spese", id: v }; scrollTo(0, 0); render("#s-desc"); },
@@ -839,7 +900,7 @@ if ("serviceWorker" in navigator) {
 applicaMov(); riduci.addEventListener("change", () => { applicaMov(); render(); });
 const aggiornaRete = () => { const o = $("#offline"); if (o) o.hidden = navigator.onLine; };
 addEventListener("online", aggiornaRete); addEventListener("offline", aggiornaRete); aggiornaRete();
-render(); cascata(); setTimeout(saluti, 900); setTimeout(caricaMeteo, 1500);
+render(); cascata(); setTimeout(saluti, 900); setTimeout(caricaMeteo, 1500); setTimeout(() => { if (typeof Mappa !== "undefined") Mappa.avvio(); }, 3500);
 document.addEventListener("visibilitychange", () => { if (!document.hidden) { setTimeout(saluti, 600); caricaMeteo(); } });
 setInterval(() => { if (tab === "viaggio" && vsub === "itin") aggiornaAdesso(); else if (tab === "oggi" && !document.activeElement.closest("form,textarea,input")) render(); }, 60000);
 try { if (navigator.storage && navigator.storage.persist) navigator.storage.persist(); } catch { /* ok */ }

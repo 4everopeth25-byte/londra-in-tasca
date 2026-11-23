@@ -1,6 +1,7 @@
 /* Londra in tasca (versione principale): copia salvata per l'uso senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-25";
-const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "sondaggio.js", "vendor/supabase.js", "fonts/PlayfairDisplay.ttf", "fonts/MountainsofChristmas-Bold.ttf", "installa.js", "manifest.webmanifest",
+const VERSIONE = "lit-27";
+const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "sondaggio.js", "vendor/supabase.js", "fonts/PlayfairDisplay.ttf", "fonts/MountainsofChristmas-Bold.ttf", "installa.js", "manifest.webmanifest", "mappa/mappa.js", "mappa/stile.json", "mappa/metro.json", "mappa/luoghi.json", "vendor/maplibre-gl-csp.js", "vendor/maplibre-gl-csp-worker.js", "vendor/maplibre-gl.css", "vendor/pmtiles.js",
+  ...["Regular", "Medium", "Italic"].flatMap(f => ["0-255", "256-511"].map(r => `mappa/fonts/Noto%20Sans%20${f}/${r}.pbf`)),
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
 self.addEventListener("install", e => e.waitUntil(
   caches.open(VERSIONE).then(c => c.addAll(FILE.map(u => new Request(u, { cache: "reload" })))).then(() => self.skipWaiting())));
@@ -10,7 +11,8 @@ self.addEventListener("activate", e => e.waitUntil(
 /* prima la rete (limite di 4 secondi), se manca o è lenta la copia salvata */
 self.addEventListener("fetch", e => {
   const u = new URL(e.request.url);
-  if (e.request.method !== "GET" || u.origin !== location.origin) return;
+  /* solo le pagine di questa app: i grossi file dei dati della mappa (altra cartella o altro sito) li gestisce l'app stessa */
+  if (e.request.method !== "GET" || u.origin !== location.origin || !u.pathname.startsWith(new URL(self.registration.scope).pathname)) return;
   const rete = Promise.race([fetch(e.request, { cache: "no-cache" }), new Promise((_, no) => setTimeout(() => no(new Error("lenta")), 4000))]);
   e.respondWith(rete.then(r => {
     if (r.ok && r.type === "basic" && !r.redirected && !u.search) {

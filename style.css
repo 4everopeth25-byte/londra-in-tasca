@@ -400,3 +400,16 @@ h2,h3{font-weight:700;font-size:1.5rem}
 /* Mostra al tassista: l'indirizzo a caratteri grandi nella finestra di saluto */
 .popup[data-grande="1"] .popup-titolo{font-size:1.5rem}
 .popup[data-grande="1"] #popup-testo{font-size:2.1rem;font-weight:700;line-height:1.25;white-space:pre-line;margin:6px 0 20px}
+
+/* Mappa offline */
+.mappa-segnaposto{margin:0 0 12px}.mappa-segnaposto.vuoto{display:none}
+.mappa-box{height:min(60vh,520px);min-height:340px;border-radius:18px;border:2px solid #b89b5e;outline:1px solid #b89b5e;outline-offset:-7px;overflow:hidden;background:#e8dcc0;position:relative}
+.mappa-box .maplibregl-canvas{outline:0}
+.pin-tappa{width:30px;height:30px;border-radius:50%;border:2px solid #fff;background:var(--pom);color:#fff;font:700 .8125rem/1 var(--sans);display:grid;place-items:center;box-shadow:0 2px 6px rgba(0,0,0,.35);cursor:pointer;padding:0}
+.pin-meta{width:22px;height:22px;border-radius:50% 50% 50% 0;transform:rotate(-45deg);background:var(--blu);border:3px solid #fff;box-shadow:0 2px 6px rgba(0,0,0,.4);margin-top:-14px}
+.passi{margin:8px 0 4px;padding-left:22px}.passi li{margin:0 0 6px;font-size:.9375rem}.passi li[style]{border-left:6px solid var(--lin);padding-left:8px;margin-left:-14px;list-style:none}
+.maplibregl-ctrl-attrib{font-size:.6875rem}
+
+/* Idee approvate collocate da sole nell'itinerario */
+.tl .scheda.idea-auto{border-style:dashed;background:linear-gradient(150deg,#fff6d0,#f3e2a8)}
+.tl .scheda.idea-auto::before{background:var(--burro)}
