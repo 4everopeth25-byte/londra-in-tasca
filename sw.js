@@ -1,6 +1,6 @@
 /* Londra in tasca (versione principale): copia salvata per l'uso senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-27";
-const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "sondaggio.js", "vendor/supabase.js", "fonts/PlayfairDisplay.ttf", "fonts/MountainsofChristmas-Bold.ttf", "installa.js", "manifest.webmanifest", "mappa/mappa.js", "mappa/stile.json", "mappa/metro.json", "mappa/luoghi.json", "vendor/maplibre-gl-csp.js", "vendor/maplibre-gl-csp-worker.js", "vendor/maplibre-gl.css", "vendor/pmtiles.js",
+const VERSIONE = "lit-28";
+const FILE = ["./", "index.html", "style.css", "dati.js", "app.js", "sondaggio.js", "push.js", "vendor/supabase.js", "fonts/PlayfairDisplay.ttf", "fonts/MountainsofChristmas-Bold.ttf", "installa.js", "manifest.webmanifest", "mappa/mappa.js", "mappa/stile.json", "mappa/metro.json", "mappa/luoghi.json", "vendor/maplibre-gl-csp.js", "vendor/maplibre-gl-csp-worker.js", "vendor/maplibre-gl.css", "vendor/pmtiles.js",
   ...["Regular", "Medium", "Italic"].flatMap(f => ["0-255", "256-511"].map(r => `mappa/fonts/Noto%20Sans%20${f}/${r}.pbf`)),
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
 self.addEventListener("install", e => e.waitUntil(
@@ -20,4 +20,21 @@ self.addEventListener("fetch", e => {
     }
     return r;
   }).catch(() => caches.open(VERSIONE).then(c => c.match(e.request, { ignoreSearch: true })).then(r => r || caches.open(VERSIONE).then(c => c.match("index.html")))));
+});
+/* notifiche push: la funzione «notifica» di Supabase manda {titolo, testo, n, url}; si mostra l'avviso e si aggiorna il numero sull'icona */
+self.addEventListener("push", e => {
+  let d = {}; try { d = e.data ? e.data.json() : {}; } catch { /* testo semplice */ }
+  const n = Number(d.n) || 0;
+  e.waitUntil(Promise.all([
+    self.registration.showNotification(d.titolo || "Londra in tasca", { body: d.testo || "Ci sono novità tra le idee.", icon: "icone/icona-192.png", badge: "icone/icona-192.png", tag: "lit-idee", renotify: true, data: { url: d.url || "./?vai=idee" } }),
+    (self.navigator && self.navigator.setAppBadge ? (n > 0 ? self.navigator.setAppBadge(n) : self.navigator.clearAppBadge()) : Promise.resolve()).catch(() => {}),
+    self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(cs => cs.forEach(c => c.postMessage({ lit: "push" })))]));
+});
+self.addEventListener("notificationclick", e => {
+  e.notification.close();
+  const url = new URL((e.notification.data && e.notification.data.url) || "./?vai=idee", self.registration.scope).href;
+  e.waitUntil(self.clients.matchAll({ type: "window", includeUncontrolled: true }).then(cs => {
+    const c = cs.find(x => x.url.startsWith(self.registration.scope));
+    return c ? c.focus().then(w => w.navigate(url)) : self.clients.openWindow(url);
+  }));
 });

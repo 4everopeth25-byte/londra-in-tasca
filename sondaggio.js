@@ -18,7 +18,7 @@ const Sond = (() => {
   let firmaG = "";
   const dopo = () => {
     if (typeof aggiornaBadge === "function") aggiornaBadge();
-    const f = JSON.stringify(P.filter(p => p.stato === 1).map(p => [p.id, p.giorno, p.titolo, p.categoria, p.descrizione])), cambiata = f !== firmaG; firmaG = f;
+    const f = JSON.stringify(P.filter(p => p.stato === 1).map(p => [p.id, p.giorno, p.titolo, p.categoria, p.descrizione, p.note_org])), cambiata = f !== firmaG; firmaG = f;
     if (cambiata && typeof ricomponi === "function") ricomponi();
     const t = typeof tab !== "undefined" ? tab : "";
     if ((t === "idee" || t === "oggi" || (t === "viaggio" && cambiata)) && libero()) render();
@@ -125,7 +125,7 @@ const Sond = (() => {
     const chiusa = p.stato !== 0;
     return `<article class="scheda${p.stato === 1 ? " acceso" : ""} st${p.stato}"><div class="nome">${esc(p.titolo)}<span class="et">${STATI[p.stato]}</span></div>
       <div class="desc">${esc(catNome(p.categoria))}. Di ${esc(nomeDi(p.participant_id))}${p.giorno ? `, giorno ${p.giorno}` : ""}. ${c.s} sì, ${c.n} no, ${c.d} non so su ${tot}. ${chiusa ? "" : esito + "."}</div>
-      ${p.descrizione ? `<div class="desc">${esc(p.descrizione)}</div>` : ""}${ok(p.sito_url) ? `<div class="riga"><a class="map" target="_blank" rel="noopener" href="${esc(p.sito_url)}">Apri il link</a></div>` : ""}
+      ${p.descrizione ? `<div class="desc">${esc(p.descrizione)}</div>` : ""}${p.indirizzo ? `<div class="desc">${esc(p.indirizzo)}</div>` : ""}${ok(p.sito_url) || ok(p.maps_url) ? `<div class="riga">${ok(p.maps_url) ? `<a class="map" target="_blank" rel="noopener" href="${esc(p.maps_url)}">Apri su Maps</a>` : ""}${ok(p.sito_url) ? `<a class="map" target="_blank" rel="noopener" href="${esc(p.sito_url)}">Apri il link</a>` : ""}</div>` : ""}
       <div class="riga" role="group" aria-label="Il tuo voto">${[[1, "Sì"], [-1, "No"], [0, "Non so"]].map(([v, l]) => `<button class="btn${mv === v ? " pri" : ""}" data-az="i_vota" data-v="${p.id}|${v}" aria-pressed="${mv === v}"${chiusa ? " disabled" : ""}>${l}</button>`).join("")}</div>
       <div class="riga"><button class="btn" data-az="i_det" data-v="${p.id}">Commenti${n ? ` (${n})` : ""}</button></div></article>`;
   }
@@ -210,7 +210,7 @@ const Sond = (() => {
   });
   /* idea precompilata da «Condividi» di un'altra app (TikTok, Instagram, Maps): il modulo si apre già scritto */
   const precompila = b => { I.bozza = { titolo: b.testo || "", sito_url: b.link || "", descrizione: b.nota || "" }; I.nuova = true; };
-  return { vistaIdee, banner, sveglia, precompila, approvate: () => P.filter(p => p.stato === 1).map(p => ({ id: p.id, titolo: p.titolo, categoria: p.categoria, descrizione: p.descrizione || "", giorno: p.giorno || 0, created_at: p.created_at, autore: nomeDi(p.participant_id) })), daVotare: () => (me ? P.filter(daVotareI).length : 0), filtraMie: () => { I.s = "mie"; } };
+  return { contesto: () => ({ cl, camp, me }), aggiorna: () => { if (camp) ricarica(); }, vistaIdee, banner, sveglia, precompila, approvate: () => P.filter(p => p.stato === 1).map(p => ({ id: p.id, titolo: p.titolo, categoria: p.categoria, descrizione: p.descrizione || "", giorno: p.giorno || 0, created_at: p.created_at, autore: nomeDi(p.participant_id), note_org: p.note_org || "", zona: p.zona || "", indirizzo: p.indirizzo || "", maps_url: p.maps_url || "" })), daVotare: () => (me ? P.filter(daVotareI).length : 0), filtraMie: () => { I.s = "mie"; } };
 })();
 
 if (typeof condiviso !== "undefined" && condiviso) Sond.precompila(condiviso);

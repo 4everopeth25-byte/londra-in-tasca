@@ -154,6 +154,7 @@ const daVotare = () => (typeof Sond !== "undefined" ? Sond.daVotare() : 0);
 function aggiornaBadge() {
   const dv = daVotare(), bd = $("#badge-idee"), bt = $('#dock [data-t="idee"]');
   if (bd) { bd.hidden = !dv; bd.textContent = dv; }
+  if (typeof Push !== "undefined") Push.numero(dv);
   if (bt) { if (dv) bt.setAttribute("aria-label", `Idee, ${dv} da votare`); else bt.removeAttribute("aria-label"); }
 }
 
@@ -176,13 +177,15 @@ function chiusura(idea, lu, cat, iso) {
   return null;
 }
 const ORA_PER = { attrazioni: "le attrazioni", musei: "i musei", esperienze: "le esperienze", ristoranti: "i ristoranti", locali: "i locali", shopping: "lo shopping", parchi: "i parchi", altro: "questa idea" };
+const tag = (t, k) => { const m = new RegExp("(?:^|;)" + k + "=([^;]*)").exec(t || ""); return m ? m[1] : ""; };
 const giaPresente = idea => { const a = norm(idea.titolo).trim(); return a.length >= 4 && TRIP.giorni.some(d => d.base.some(t => { const b = norm(t.nome); return b.includes(a) || (b.length >= 6 && a.includes(b)); })); };
 function collocaIdee(lista) {
   const out = TRIP.giorni.map(() => []), n = TRIP.giorni.length, FINE = TRIP.giorni.map((_, i) => (i === n - 1 ? 14 * 60 : 22 * 60 + 30));
   const ord = [...lista].sort((a, b) => String(a.created_at).localeCompare(String(b.created_at)) || String(a.id).localeCompare(String(b.id)));
   for (const idea of ord) {
     if (giaPresente(idea)) continue;
-    const lu = luogoNoto(idea.titolo + " " + (idea.descrizione || "")), cat = DURATA[idea.categoria] ? idea.categoria : "altro", ll = lu ? lu.ll : null, scarti = [];
+    const lu = luogoNoto(idea.titolo + " " + (idea.descrizione || "")), cat = DURATA[idea.categoria] ? idea.categoria : "altro", scarti = [];
+    const ct = tag(idea.note_org, "ll").split(",").map(Number), ll = ct.length === 2 && ct.every(Number.isFinite) ? ct : (lu ? lu.ll : null), minori = tag(idea.note_org, "m");
     const possibili = TRIP.giorni.map((d, gi) => { const c = chiusura(idea, lu, cat, d.iso); if (c) { scarti.push(`giorno ${gi + 1}: ${c.m}`); return null; } return gi; }).filter(x => x !== null);
     const richiesto = idea.giorno >= 1 && idea.giorno <= n ? idea.giorno - 1 : -1, usaRichiesto = richiesto >= 0 && possibili.includes(richiesto);
     const cand = usaRichiesto ? [richiesto] : (possibili.length ? possibili : TRIP.giorni.map((_, i) => i));
@@ -190,6 +193,7 @@ function collocaIdee(lista) {
     for (const gi of cand) {
       const d = TRIP.giorni[gi], tp = d.base.filter(t => orario(t.ora) != null), fissi = tp.map(t => orario(t.ora)).concat(out[gi].map(t => orario(t.ora)));
       let sc = tp.length * 6 + out[gi].length * 10, ora = PREF[cat];
+      if (cat === "locali") { ora = minori === "no" ? 21 * 60 + 30 : /^\d+$/.test(minori) ? Math.min(+minori, 20) * 60 - 30 : 18 * 60 + 30; if (d.iso === "2026-12-24" || gi === n - 1) sc += 200; }
       if (gi === 0) sc += 300;
       if (d.iso === "2026-12-25" && !["parchi", "ristoranti"].includes(cat)) sc += 60; else if (d.iso === "2026-12-25") sc += 25;
       let vicina = null;
@@ -202,7 +206,7 @@ function collocaIdee(lista) {
     const motivi = [];
     if (usaRichiesto) motivi.push("è il giorno indicato da chi ha proposto l'idea");
     else { if (richiesto >= 0) motivi.push(`il giorno ${richiesto + 1} indicato non va bene (${(scarti.find(x => x.startsWith("giorno " + (richiesto + 1))) || "giorno non adatto").replace(/^giorno \d: /, "")})`); if (best.vicina && best.vicina[0] < 2) motivi.push(`è vicino a «${best.vicina[1].nome}» (circa ${best.vicina[0].toFixed(1).replace(".", ",")} km)`); if (best.carico <= 6) motivi.push("ha poche tappe"); }
-    motivi.push(`l'ora indicativa è quella tipica per ${ORA_PER[cat]}`);
+    motivi.push(cat === "locali" ? (minori === "no" ? "è un locale solo per adulti: serve che qualcuno resti con Ludovica, quindi è messo a tarda sera" : "è un locale da fare prima di cena") : `l'ora indicativa è quella tipica per ${ORA_PER[cat]}`);
     const nota = best.incastro ? " Il giorno è già pieno: incastrala dove trovi tempo o togli un'altra tappa." : "";
     out[best.gi].push({ ora: `~${hhmm(Math.min(best.ora, FINE[best.gi]))}`, nome: idea.titolo, desc: [idea.descrizione, `Idea approvata${idea.autore ? ` (proposta da ${idea.autore})` : ""}. Messa al giorno ${best.gi + 1} perché ${motivi.join(", ")}.${nota}`].filter(Boolean).join(" "), q: idea.titolo, ll: ll || undefined, idea: true, k: "i-" + idea.id, durata: DURATA[cat] });
   }
@@ -481,10 +485,18 @@ const vistaFrasi = () => `<div class="scheda"><div class="nome">Mostra al tassis
   <div class="scheda">${TRIP.frasi.map(([it, en], i) => `<div class="frase"><div class="mute">${esc(it)}</div><div class="riga" style="margin:0;justify-content:space-between;flex-wrap:nowrap"><div class="nome" lang="en-GB">${esc(en)}</div>${"speechSynthesis" in window ? `<button class="btn tondo" data-az="parla" data-v="${i}" aria-label="Ascolta in inglese: ${esc(en)}">${ic("audio", 18)}</button>` : ""}</div></div>`).join("")}</div>
   <h2 class="h-sez">Numeri utili nel Regno Unito</h2><div class="scheda">${TRIP.emergenze.map(e => `<div class="frase"><a class="map" href="tel:${e.n}">${ic("phone", 18)}Chiama ${e.n}</a><div class="desc">${esc(e.t)}</div></div>`).join("")}</div>
   <p class="mute">Ambasciata e consolato d'Italia: cerca i recapiti aggiornati su dovesiamonelmondo.esteri.it.</p>`;
+async function statoPush() {
+  const d = $("#stato-push"), r = $("#riga-push"); if (!d || !r) return;
+  const st = typeof Push === "undefined" ? "no" : await Push.stato();
+  const t = { no: "Questo browser non supporta le notifiche. Su iPhone va prima aggiunta l'app alla schermata Home.", nome: "Scegli prima il tuo nome nella pagina Idee.", negato: "Le notifiche sono bloccate: si sbloccano dalle impostazioni del browser per questo sito.",
+    spento: "Ricevi un avviso quando c'è un'idea nuova da votare o cambia lo stato di un'idea. Su Android l'icona mostra un puntino, su iPhone il numero.", attivo: "Attive su questo telefono." }[st];
+  d.textContent = t; r.innerHTML = st === "spento" ? `<button class="btn pri" data-az="pushOn">Attiva le notifiche</button>` : st === "attivo" ? `<button class="btn" data-az="pushOff">Spegni</button>` : "";
+}
 function vistaSistema() {
   const ps = gruppo();
   return `<div class="scheda"><div class="nome">Uso senza rete</div><div class="desc" id="stato-offline">Controllo in corso.</div><div class="mute piccolo" id="ver-app"></div></div>
     <div class="scheda"><div class="nome">Chi sei?</div><div class="desc">Serve per firmare le spese. Per le idee il nome si sceglie nella pagina Idee.</div><select data-chg="me" aria-label="Chi sei"><option value="">Scegli il tuo nome</option>${ps.map(p => `<option${p === S.me ? " selected" : ""}>${esc(p)}</option>`).join("")}</select></div>
+    <div class="scheda"><div class="nome">Notifiche</div><div class="desc" id="stato-push">Controllo in corso.</div><div class="riga" id="riga-push"></div></div>
     <div class="scheda"><div class="nome">Spese tra telefoni</div><div class="desc">Le spese stanno su ogni telefono. Per metterle insieme, manda le tue su WhatsApp: chi le riceve le incolla qui sotto e si uniscono senza duplicati.</div>
     <div class="riga"><button class="btn pri" data-az="whatsapp">Invia su WhatsApp</button><button class="btn" data-az="copiaCodice">${ic("copy", 18)}Copia il testo</button></div>
     <div class="riga"><button class="btn" data-az="condividi">Condividi il file</button><button class="btn" data-az="scarica">Scarica</button></div>
@@ -606,7 +618,7 @@ function render(foco) {
   aggiornaAdesso();
   if (tab === "viaggio" && vsub === "itin") osservaGuida();
   if (tab === "viaggio" && vsub === "mappa" && typeof Mappa !== "undefined") Mappa.monta();
-  if (tab === "altro" && sub === "sistema") statoOffline();
+  if (tab === "altro" && sub === "sistema") { statoOffline(); statoPush(); }
 }
 async function statoOffline() {
   const el = $("#stato-offline"); if (!el) return;
@@ -742,6 +754,8 @@ document.addEventListener("keydown", e => { if (e.key === "Escape") { const t = 
 /* ---------- azioni ---------- */
 const trova = (k, id) => S[k].find(x => x.id === id && !x.del);
 const azioni = {
+  async pushOn() { try { await Push.attiva(); dire("Notifiche attivate su questo telefono."); } catch (e) { dire(e.message || "Non riuscito", "avv"); } statoPush(); },
+  async pushOff() { try { await Push.disattiva(); dire("Notifiche spente."); } catch (e) { dire(e.message || "Non riuscito", "avv"); } statoPush(); },
   tab(v) { const dir = ORD_TAB.indexOf(v) >= ORD_TAB.indexOf(tab) ? 1 : -1; vt(() => { tab = v; msg = ""; edit = null; scrollTo(0, 0); render(); focaTitolo(); cascata(); }, dir); },
   vai(v) {
     const [t, s] = String(v).split(":");
@@ -861,6 +875,7 @@ document.addEventListener("touchend", e => {
 let condiviso = null;
 (function daCondivisione() {
   const p = new URLSearchParams(location.search);
+  if (p.get("vai") === "idee") { tab = "idee"; try { history.replaceState(null, "", location.pathname); } catch { /* ok */ } }
   if (!(p.has("url") || p.has("text") || p.has("title"))) return;
   const link = primoLink([p.get("url"), p.get("text")].filter(Boolean).join(" "));
   const testo = (p.get("title") || p.get("text") || "").replace(link, "").trim().slice(0, 200);
