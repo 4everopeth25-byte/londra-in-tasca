@@ -273,6 +273,21 @@ const statoValigia = p => { const m = S.val[p] || {}, v = vociDi(p); return { fa
 const testoD = (d, gg, nn) => (typeof d === "function" ? d(gg, nn) : d || "");
 
 /* ---------- viste ---------- */
+/* percorso del giorno con le coordinate delle tappe: tracciato ambra, tappa in corso o prossima evidenziata */
+function miniMappa(d, idx) {
+  let pts = d.tappe.map((t, i) => ({ t, i })).filter(p => p.t.ll);
+  const k0 = Math.max(0, pts.findIndex(p => p.i >= idx)); pts = pts.slice(Math.max(0, k0 - 1), k0 + 5);
+  if (pts.length < 2) return "";
+  const W = 342, H = 112, P = 24, lat0 = pts.reduce((a, p) => a + p.t.ll[0], 0) / pts.length, kx = Math.cos(lat0 * Math.PI / 180);
+  const xs = pts.map(p => p.t.ll[1] * kx), ys = pts.map(p => -p.t.ll[0]);
+  const x0 = Math.min(...xs), x1 = Math.max(...xs), y0 = Math.min(...ys), y1 = Math.max(...ys);
+  const sc = Math.min((W - 2 * P) / ((x1 - x0) || 1e-6), (H - 2 * P) / ((y1 - y0) || 1e-6)), ox = (W - (x1 - x0) * sc) / 2, oy = (H - (y1 - y0) * sc) / 2;
+  const q = pts.map((p, k) => [ox + (xs[k] - x0) * sc, oy + (ys[k] - y0) * sc]), lin = q.map(p => p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+  const vie = [[0, .3, 1, .18], [0, .62, 1, .5], [.28, 0, .6, 1], [.72, 0, .9, 1]].map(l => `<path d="M${l[0] * W} ${l[1] * H}L${l[2] * W} ${l[3] * H}"/>`).join("");
+  const tondi = q.map((p, k) => { const on = pts[k].i === idx; return `<circle class="${on ? "p-on" : "p"}" cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="${on ? 13 : 9}"/><text x="${p[0].toFixed(1)}" y="${p[1].toFixed(1)}">${k + 1}</text>`; }).join("");
+  const pronta = typeof Mappa !== "undefined" && Mappa.pronta();
+  return `<div class="mm"><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Percorso del giorno, ${pts.length} tappe"><rect class="fondo" width="${W}" height="${H}"/><g class="sf">${vie}</g><polyline class="alone" points="${lin}"/><polyline class="rotta" points="${lin}"/>${tondi}</svg>${pronta ? `<span class="stato">Mappa offline pronta</span>` : ""}</div>`;
+}
 function luci(prima) {
   return `<svg class="luci${prima ? " accendi" : ""}" data-az="onda" viewBox="0 0 320 16" preserveAspectRatio="none" aria-hidden="true" focusable="false"><path d="M0 4 Q20 14 40 4 T80 4 T120 4 T160 4 T200 4 T240 4 T280 4 T320 4" fill="none" stroke="#c9a24b" stroke-width="1"/>${[20, 60, 100, 140, 180, 220, 260, 300].map((x, i) => `<circle class="lampada l${i % 3}" style="--i:${i}" cx="${x}" cy="${i % 2 ? 11 : 10}" r="3.2"/>`).join("")}</svg>`;
 }
@@ -292,21 +307,23 @@ function vistaOggi() {
   let prima = false; try { prima = !sessionStorage.getItem("lit-luci"); if (prima) sessionStorage.setItem("lit-luci", "1"); } catch { /* ok */ }
   const ora = new Date(), st = statoOggi(), partenza = new Date(TRIP.partenza), ng = TRIP.giorni.length;
   let titolo, sotto;
-  if (st) { titolo = `Giorno ${st.g + 1} di ${ng}`; sotto = `${TRIP.giorni[st.g].data}. ${TRIP.giorni[st.g].titolo}.`; }
+  let occhiello = "Londra · dal 23 al 27 dicembre 2026";
+  if (st) { const dg = TRIP.giorni[st.g], dt = new Date(dg.iso + "T12:00:00"); occhiello = `${dt.toLocaleDateString("it-IT", { weekday: "long" })} · giorno ${st.g + 1} di ${ng}`; titolo = dt.toLocaleDateString("it-IT", { day: "numeric", month: "long" }); sotto = `${dg.titolo}.`; }
   else if (ora < partenza) { const mezz = d => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime(), gg = Math.max(1, Math.round((mezz(partenza) - mezz(ora)) / 864e5)); titolo = `${gg} ${gg === 1 ? "giorno" : "giorni"} a Londra`; sotto = testoPartenza(); }
   else { titolo = "Bentornati"; sotto = "Il viaggio è finito: salva un backup di idee e spese."; }
   const f = st ? fraseProssima(st) : null, giorno = st ? TRIP.giorni[st.g] : null, cur = st && st.cur >= 0 ? giorno.tappe[st.cur] : null;
   const mappa = (q, cls) => (q ? `<a class="map ${cls}" target="_blank" rel="noopener" href="${mapsUrl([q], giorno.mezzo)}">${ic("pin", 18)}Mappa<span class="vh">, si apre in una nuova scheda</span></a>` : "");
-  const inCorso = cur ? `<div class="scheda acceso"><div class="nome">${esc(cur.nome)}<span class="et">In corso</span></div><div class="desc">${esc(cur.ora)}${cur.desc ? `. ${esc(cur.desc)}` : ""}</div>
+  const mm = st ? miniMappa(giorno, cur ? st.cur : st.next) : "";
+  const inCorso = cur ? `<div class="scheda acceso">${mm}<div class="nome">${esc(cur.nome)}<span class="et">In corso</span></div><div class="desc">${esc(cur.ora)}${cur.desc ? `. ${esc(cur.desc)}` : ""}</div>
       <div class="riga">${mappa(qt(cur), "pri")}<button class="btn" data-az="vai" data-v="viaggio:itin">Apri il giorno</button></div></div>` : "";
   const mostraF = f && !(cur && st.next < 0 && f.t === cur.nome);
-  const prossima = mostraF ? `<div class="scheda tratt"><div class="nome">${esc(f.t)}<span class="et">Prossima</span></div><div class="desc">${esc(f.s)}</div>
+  const prossima = mostraF ? `<div class="scheda tratt">${cur ? "" : mm}<div class="nome">${esc(f.t)}<span class="et">Prossima</span></div><div class="desc">${esc(f.s)}</div>
       <div class="riga">${cur ? "" : mappa(f.q, "pri")}${cur ? "" : `<button class="btn" data-az="vai" data-v="viaggio:itin">Apri il giorno</button>`}</div></div>`
     : (!st ? `<div class="scheda"><div class="nome">Primo giorno: ${esc(TRIP.giorni[0].titolo)}</div><div class="desc">${TRIP.giorni[0].tappe.length} tappe, dal volo del mercoledì sera alla cena a King's Cross.</div>
       <div class="riga"><button class="btn" data-az="vai" data-v="viaggio:itin">Apri l'itinerario</button></div></div>` : "");
   const dv = daVotare(), tot = saldi().tot, vs = S.valP ? statoValigia(S.valP) : null;
   const voce = (icona, t, sub, v, az, extra = "") => `<button class="voce" data-az="vai" data-v="${az}">${ic(icona, 22)}<span class="t"><b>${t}</b><span>${sub}</span></span><span class="v${extra}">${v}</span></button>`;
-  return `<header class="fascia luminosa">${luci(prima)}<h1>${esc(titolo)}</h1><p>${esc(sotto)}</p></header>
+  return `<header class="fascia luminosa">${luci(prima)}<p class="occhiello">${esc(occhiello)}</p><h1>${esc(titolo)}</h1><p>${esc(sotto)}</p></header>
     ${bannerSync()}${inCorso}${prossima}${st ? cartaMeteo(giorno) : ""}
     <h2 class="h-sez">Le finestre del viaggio</h2>
     ${avvento()}

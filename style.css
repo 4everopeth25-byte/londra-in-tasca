@@ -362,8 +362,6 @@ article.scheda.acceso::after{animation:spunta .6s .15s var(--molla) both}
 .gr-nomi .m{background:transparent;border-style:dashed;color:var(--muto)}
 
 /* ==== Cartolina vittoriana (21/11/2026): crema, doppia cornice dorata, verde agrifoglio e rosso bacca, angoli arrotondati ==== */
-@font-face{font-family:"Playfair Display";src:url("fonts/PlayfairDisplay.ttf") format("truetype");font-weight:400 900;font-display:swap}
-@font-face{font-family:"Mountains of Christmas";src:url("fonts/MountainsofChristmas-Bold.ttf") format("truetype");font-weight:700;font-display:swap}
 
 /* 4 · Cartolina vittoriana: carta crema con doppia cornice dorata, verde agrifoglio e rosso bacca, titoli a mano, candele di Dickens */
 :root{--fondo:#f4ead5;--carta:#fffaf0;--ink:#2a1d14;--muto:#5a4a3b;--burro:#e8c36a;--rosa:#e9b7a6;--pom:#9d1c24;--menta:#d9e6cf;--blu:#1f4d3a;--notte:#173a2b;--mare:#2d5a42;--si:#3d7a52;--no:#9d1c24;--ok:#1f5a38;--rosso-t:#8a1620;--allerta:#8a1620;--tenue:#eadcbc;
