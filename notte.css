@@ -192,3 +192,13 @@ article.scheda.st3::after{border-color:var(--su-ambra)}
 .opzione.scelta{box-shadow:inset 3px 0 0 var(--ambra);padding-left:12px}
 .opzione.depennata .nome{text-decoration:line-through;text-decoration-thickness:2px;opacity:.55}
 .opzione .btn,.opzione a.map{min-height:44px;padding:6px 16px;font-size:.875rem}
+
+/* luoghi vicini a una tappa */
+.vicini{margin-top:10px}.vicini>summary{cursor:pointer;min-height:44px;display:flex;align-items:center;justify-content:space-between;gap:8px;list-style:none;font-weight:600;font-size:.875rem;color:var(--ambra)}
+.vicini>summary::-webkit-details-marker{display:none}.vicini>summary::after{content:"";width:9px;height:9px;margin-right:4px;border:solid currentColor;border-width:0 2px 2px 0;transform:rotate(45deg);transition:transform .25s}.vicini[open]>summary::after{transform:rotate(-135deg)}
+.vicini ul{list-style:none;margin:0;padding:0;border-left:2px solid var(--ambra);padding-left:12px}
+.vicini li{padding:10px 0;border-bottom:1px solid var(--linea-forte)}.vicini li:last-child{border-bottom:0}
+.vicini .vn{font-weight:700;color:var(--ink)}.vicini .riga.pc{margin-top:6px;gap:6px}.vicini .pill{font-size:.6875rem;padding:1px 8px}.vicini .mut{font-size:.75rem;color:var(--muto)}
+.vicini a.map{min-height:44px;padding:6px 16px;font-size:.875rem}
+@media (prefers-reduced-motion:reduce){.vicini>summary::after{transition:none}}
+.tl .vicini li{display:block;position:static;padding:10px 0;grid-template-columns:none}.tl .vicini li::before,.tl .vicini li::after{display:none}

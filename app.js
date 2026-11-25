@@ -378,6 +378,13 @@ function vistaViaggio() {
   if (vsub === "mappa") return `<h1 class="vt">Mappa</h1>${chips}${avviso()}${typeof Mappa !== "undefined" ? Mappa.vista() : ""}`;
   return vistaItinerario(chips);
 }
+const TAGV = { instagrammabile: "Instagrammabile", curioso: "Curioso", locale: "Da local", bimbi: "Con bambini", gratis: "Gratis" };
+/* luoghi interessanti vicino a una tappa (campo `vicino` in dati.js): sotto-tappe facoltative, non entrano nel percorso */
+function vicinoHtml(t) {
+  if (!t.vicino || !t.vicino.length) return "";
+  const li = t.vicino.map(x => `<li><div class="vn">${esc(x.n)}</div><div class="riga pc">${(x.t || []).map(k => `<span class="pill">${esc(TAGV[k] || k)}</span>`).join("")}<span class="mut">${esc(x.m || "")}</span></div><div class="desc">${esc(x.d || "")}</div><div class="riga"><a class="map" target="_blank" rel="noopener" href="${mapsUrl([x.q], "walking")}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(x.n)}, si apre in una nuova scheda</span></a></div></li>`).join("");
+  return `<details class="vicini"><summary>Lì vicino (${t.vicino.length})</summary><ul>${li}</ul></details>`;
+}
 function vistaItinerario(chips) {
   const d = TRIP.giorni[g], oggi = statoOggi();
   const rail = TRIP.giorni.map((x, i) => `<button class="giorno${oggi && oggi.g === i ? " oggi" : ""}" data-az="giorno" data-v="${i}" aria-pressed="${i === g}" aria-label="Giorno ${i + 1}, ${esc(x.data)}${oggi && oggi.g === i ? ", oggi" : ""}"><b>${x.iso.slice(8)}</b><small>${esc(x.breve.split(" ")[1])}</small></button>`).join("");
@@ -388,6 +395,7 @@ function vistaItinerario(chips) {
     return `<li data-i="${i}"><div class="quando${ha ? "" : " testo"}">${esc(t.ora || "")}</div><div class="scheda${t.idea ? " idea-auto" : ""}"><div class="nome">${esc(t.nome)}${t.idea ? `<span class="et">Idea approvata</span>` : ""}</div>
     ${t.desc ? `<div class="desc">${esc(t.desc)}</div>` : ""}
     <div class="riga">${t.costo ? `<span class="pill">${esc(t.costo)}</span>` : ""}${t.q ? `<a class="map" target="_blank" rel="noopener" href="${mapsUrl([qt(t)], d.mezzo)}">${ic("pin", 18)}Mappa<span class="vh"> di ${esc(t.nome)}, si apre in una nuova scheda</span></a>` : ""}${come}</div>
+    ${vicinoHtml(t)}
     <details class="nota-t"${nt ? " open" : ""}><summary>${nt ? "Nota personale" : "Aggiungi nota"}</summary>
     <textarea rows="2" maxlength="500" data-chg="nota" data-v="${nk}" aria-label="Nota personale per ${esc(t.nome)}" placeholder="Solo sul tuo telefono">${esc(nt)}</textarea></details></div></li>`;
   }).join("");
