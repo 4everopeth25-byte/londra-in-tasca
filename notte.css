@@ -202,3 +202,11 @@ article.scheda.st3::after{border-color:var(--su-ambra)}
 .vicini a.map{min-height:44px;padding:6px 16px;font-size:.875rem}
 @media (prefers-reduced-motion:reduce){.vicini>summary::after{transition:none}}
 .tl .vicini li{display:block;position:static;padding:10px 0;grid-template-columns:none}.tl .vicini li::before,.tl .vicini li::after{display:none}
+
+/* idee approvate nell'itinerario: verde agrifoglio, per distinguerle dalle tappe di base */
+.tl .scheda.idea-auto{background:linear-gradient(160deg,rgba(63,157,115,.2),rgba(63,157,115,.08));border:1px solid #3f9d73;border-left-width:4px}
+.tl .scheda.idea-auto::before{background:#3f9d73}
+.tl .scheda.idea-auto .et{border-color:#7fd3a9;color:#7fd3a9;background:rgba(63,157,115,.18)}
+.tl .scheda.idea-auto .opzione.scelta{border-color:#7fd3a9}
+.legenda-idee{display:flex;align-items:center;gap:8px;margin:0 0 12px;font-size:.8125rem;color:var(--muto)}
+.punto-idea{flex:none;width:12px;height:12px;border-radius:3px;background:#3f9d73}

@@ -166,11 +166,13 @@ const Sond = (() => {
     if (!camp) return errore ? `${titoloIdee()}<div class="msg avv">${esc(errore)}</div><div class="riga"><button class="btn" data-az="i_riprova">Riprova</button></div>` : (gruppoVis ? sceltaNome() : `${titoloIdee()}<div class="msg avv">Gruppo non trovato.</div>`);
     if (I.det) return dettaglioI();
     const mia = me && me.id;
-    let l = P.filter(p => (!I.cat || p.categoria === I.cat) && (I.s === "" || (I.s === "mie" ? daVotareI(p) : p.stato === +I.s)));
+    /* le idee approvate non si vedono qui: stanno nell'itinerario (schede verdi) */
+    if (I.s === "1") I.s = "";
+    let l = P.filter(p => p.stato !== 1 && (!I.cat || p.categoria === I.cat) && (I.s === "" || (I.s === "mie" ? daVotareI(p) : p.stato === +I.s)));
     l.sort((a, b) => I.ord === "voti" ? (conta(b.id).s - conta(b.id).n) - (conta(a.id).s - conta(a.id).n) : new Date(b.created_at) - new Date(a.created_at));
-    const stati = [["", "Ogni stato"], ["mie", "Da votare da me"], ["0", "In votazione"], ["1", "Approvate"], ["2", "Respinte"], ["3", "Fatte"]].map(([v, t]) => `<button class="chip" data-az="i_fs" data-v="${v}" aria-pressed="${I.s === v}">${t}</button>`).join("");
+    const stati = [["", "Ogni stato"], ["mie", "Da votare da me"], ["0", "In votazione"], ["2", "Respinte"], ["3", "Fatte"]].map(([v, t]) => `<button class="chip" data-az="i_fs" data-v="${v}" aria-pressed="${I.s === v}">${t}</button>`).join("");
     const cats = [["", "Ogni categoria"], ...CAT].map(([v, t]) => `<button class="chip" data-az="i_fc" data-v="${v}" aria-pressed="${I.cat === v}">${t}</button>`).join("");
-    return `${titoloIdee()}${avviso()}${errore ? `<div class="msg avv">${esc(errore)}</div>` : ""}<p class="mute">Ogni idea è un sondaggio: votano i quattro adulti con Sì, No o Non so. Le idee e i voti arrivano da soli su tutti i telefoni. Sei ${esc(me ? me.nome : "?")}.</p>
+    return `${titoloIdee()}${avviso()}${errore ? `<div class="msg avv">${esc(errore)}</div>` : ""}<p class="mute">Ogni idea è un sondaggio: votano i quattro adulti con Sì, No o Non so. Le idee e i voti arrivano da soli su tutti i telefoni. Quelle approvate passano nell'itinerario, nelle schede verdi. Sei ${esc(me ? me.nome : "?")}.</p>
       <details class="scheda nuova"${I.nuova || I.modif ? " open" : ""}><summary>Nuova idea</summary>${formIdea(I.modif && P.find(p => p.id === I.modif) || I.bozza || {})}</details>
       <div class="chips" role="group" aria-label="Filtra per stato">${stati}</div><div class="chips" role="group" aria-label="Filtra per categoria">${cats}</div>
       <div class="chips" role="group" aria-label="Ordine"><button class="chip" data-az="i_ord" data-v="recenti" aria-pressed="${I.ord !== "voti"}">Più recenti</button><button class="chip" data-az="i_ord" data-v="voti" aria-pressed="${I.ord === "voti"}">Più votate</button></div>

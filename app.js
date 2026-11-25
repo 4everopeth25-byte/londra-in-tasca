@@ -408,6 +408,7 @@ function vistaItinerario(chips) {
     <div class="rail" role="group" aria-label="Giorni del viaggio">${rail}</div>
     <div id="adesso" hidden></div>
     ${cartaMeteo(d)}
+    ${(d.tutte || []).some(t => t.idea) ? `<p class="legenda-idee"><span class="punto-idea" aria-hidden="true"></span>Le schede verdi sono idee approvate dal gruppo, messe qui da sole nel giorno e nell'ora più adatti.</p>` : ""}
     <ol class="tl">${tappe}</ol>
     ${d.pianoB ? `<details class="scheda nuova"><summary>Piano B se piove</summary><div class="desc">${esc(d.pianoB)}</div></details>` : ""}
     ${percorso ? `<p><a class="map pri" target="_blank" rel="noopener" href="${percorso}">${ic("compass", 18)}Percorso del giorno su Google Maps<span class="vh">, si apre in una nuova scheda</span></a></p>` : ""}
