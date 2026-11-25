@@ -95,17 +95,16 @@ const TRIP = {
       nota: "Metro ridotta e Elizabeth line ferma. Lo Sky Garden è qui, di sera, perché il 24 si torna a casa a cambiarsi. Il Balloon Museum è stato tolto: troppo lontano."
     },
     {
-      iso: "2026-12-27", breve: "27 dom", data: "Domenica 27 dicembre", titolo: "Natural History Museum, Sunday roast e ritorno", mezzo: "transit",
-      pianoB: "Il Natural History Museum è al coperto e il Science Museum è accanto (orari del 27 da verificare). Il pranzo a Marylebone è al chiuso.",
+      iso: "2026-12-27", breve: "27 dom", data: "Domenica 27 dicembre", titolo: "Natural History Museum, Sunday roast a Islington e ritorno", mezzo: "transit",
+      pianoB: "Il Natural History Museum è al coperto e il Science Museum è accanto (orari del 27 da verificare). Il pranzo a Islington è al chiuso.",
       tappe: [
         { ora: "09:15", nome: "Check-out e deposito bagagli", desc: "", q: "King's Cross Station", ll: [51.53049, -0.12166], casa: true },
         { ora: "09:45", nome: "Piccadilly line per South Kensington", desc: "Da King's Cross circa 20 minuti, poi il sottopassaggio fino ai musei.", q: "South Kensington Station, London", ll: [51.49412, -0.17358], mezzo: "transit" },
         { ora: "10:15", nome: "Natural History Museum", desc: "Aperto il 27, dopo la chiusura del 24-26. Ingresso gratuito, prenotare lo slot se richiesto, da verificare. Il dinosauro e la sala delle balene.", q: "Natural History Museum, Cromwell Road, London SW7 5BD", ll: [51.49651, -0.176], costo: "gratis" },
-        { ora: "12:15", nome: "Exhibition Road: Science Museum e V&A da fuori", desc: "Facoltativa: i due musei sono a pochi passi. Il Science Museum è aperto il 27, orari da verificare.", q: "Science Museum, Exhibition Road, London", ll: [51.49776, -0.17433] },
-        { ora: "12:45", nome: "Circle line per Baker Street", desc: "Da South Kensington circa 20 minuti.", q: "Baker Street Station, London", ll: [51.52262, -0.15695], mezzo: "transit" },
-        { ora: "13:15", nome: "Sunday roast al The Coach Makers Arms", desc: "88 Marylebone Lane. Alternativa: The Volunteer su Baker Street.", q: "The Coach Makers Arms, 88 Marylebone Lane, London", ll: [51.51717, -0.15063] },
-        { ora: "14:30", nome: "Marylebone High Street e statua di Sherlock Holmes", desc: "Facoltativa: la via dei negozi di Marylebone e, a Baker Street, la statua e la facciata del 221B.", q: "Sherlock Holmes statue Baker Street", ll: [51.5225, -0.15659] },
-        { ora: "15:30", nome: "Ritiro bagagli", desc: "Da Baker Street con la Metropolitan o Hammersmith & City line fino a King's Cross.", q: "King's Cross Station", ll: [51.53049, -0.12166], casa: true },
+        { ora: "11:30", nome: "Piccadilly e Northern line per Angel", desc: "Da South Kensington a King's Cross con la Piccadilly line, poi una fermata di Northern line fino ad Angel. Circa 40 minuti in tutto, poi 8 minuti a piedi.", q: "Angel Station, London", ll: [51.53224, -0.10575], mezzo: "transit" },
+        { ora: "12:30", nome: "Sunday roast al The Pig and Butcher", desc: "80 Liverpool Road, Islington N1 0QD. Prenotare e chiedere se accolgono la bambina, da verificare. Cucina aperta la domenica, orari da confermare.", q: "The Pig and Butcher, 80 Liverpool Road, London N1 0QD", ll: [51.53395, -0.10505] },
+        { ora: "14:30", nome: "Passeggiata su Upper Street", desc: "Facoltativa: la via dei negozi e dei locali di Islington, a due passi dal pub.", q: "Upper Street, Islington, London", ll: [51.5365, -0.1030] },
+        { ora: "15:30", nome: "Ritiro bagagli", desc: "Da Angel con la Northern line, una fermata fino a King's Cross.", q: "King's Cross Station", ll: [51.53049, -0.12166], casa: true },
         { ora: "16:30", nome: "Treno da St Pancras per Luton", desc: "Il ritorno parte da Luton, non da Stansted.", q: "St Pancras International", ll: [51.53272, -0.127] },
         { ora: "20:55", nome: "Volo Ryanair FR 761", desc: "Luton → Venezia, arrivo 00:05 del 28/12. Carta d'imbarco solo sull'app.", durata: 190 }
       ],
