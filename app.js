@@ -51,7 +51,7 @@ const ICONE = {
 const ic = (n, s = 22) => `<svg viewBox="0 0 24 24" width="${s}" height="${s}" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${ICONE[n]}</svg>`;
 
 /* ---------- stato ---------- */
-const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", mov: "auto", riserv: null, finestre: {}, salutoGiorno: "", contoVisto: {}, valigiaOk: {}, dep: {} });
+const vuoto = () => ({ me: "", idee: [], spese: [], fatti: {}, note: {}, cambio: 0, cambioQ: 0, cambioData: "", val: {}, profili: {}, valP: "", mov: "auto", riserv: null, finestre: {}, salutoGiorno: "", contoVisto: {}, valigiaOk: {}, dep: {}, vetro: true });
 const ID_OK = /^[A-Za-z0-9_-]{1,40}$/;
 const nomeOk = p => typeof p === "string" && p.trim() !== "" && p.length <= 40 && !/^(__proto__|constructor|prototype)$/.test(p);
 const mappa = (o, ok) => { const r = {}; if (o && typeof o === "object" && !Array.isArray(o)) for (const [k, v] of Object.entries(o).slice(0, 600)) if (k.length <= 80 && k !== "__proto__" && ok(v)) r[k] = v; return r; };
@@ -69,6 +69,7 @@ function carica() {
     pulisciMappe(x);
     if (!["auto", "on", "off"].includes(x.mov)) x.mov = raw && raw.neve === false ? "off" : "auto";
     delete x.neve;
+    x.vetro = x.vetro !== false;
     if (!Number.isFinite(+x.cambio)) x.cambio = 0;
     if (!Number.isFinite(+x.cambioQ)) x.cambioQ = 0;
     for (const k of ["me", "valP", "cambioData"]) if (typeof x[k] !== "string") x[k] = "";
@@ -84,6 +85,9 @@ function applicaMov() {
   const c = document.getElementById("neve"); if (c) c.hidden = movOff();
 }
 applicaMov();
+/* vetro: menu e barre in stile Liquid Glass di iOS 27 (acceso di default, si spegne da Altro, Sistema) */
+function applicaVetro() { document.documentElement.classList.toggle("vetro", S.vetro !== false); }
+applicaVetro();
 function salva() { try { localStorage.setItem(CH, JSON.stringify(S)); } catch { if (!salvaAvvisato) { salvaAvvisato = true; msg = "Impossibile salvare su questo telefono: le modifiche si perdono alla chiusura."; } } }
 const gruppo = () => (S.riserv && Array.isArray(S.riserv.gruppo) && S.riserv.gruppo.length ? S.riserv.gruppo : TRIP.gruppoDefault);
 const oggiIso = (n = new Date()) => `${n.getFullYear()}-${String(n.getMonth() + 1).padStart(2, "0")}-${String(n.getDate()).padStart(2, "0")}`;
@@ -565,6 +569,8 @@ function vistaSistema() {
     <div class="scheda"><div class="nome">Movimento e neve</div><div class="desc">${riduci.matches ? "Questo telefono chiede di ridurre le animazioni (su Android: Impostazioni, Accessibilità, «Rimuovi animazioni»; il nome cambia da marca a marca). In Automatico l'app resta ferma. Scegli «Sempre attivo» per vedere comunque transizioni, neve, luci e popup." : "Transizioni, neve, luci e popup. In Automatico seguono le impostazioni del telefono."}</div>
     <div class="chips avvolgi" role="group" aria-label="Movimento">${[["auto", "Automatico"], ["on", "Sempre attivo"], ["off", "Spento"]].map(([v, l]) => `<button class="chip" data-az="mov" data-v="${v}" aria-pressed="${S.mov === v}">${l}</button>`).join("")}</div>
     <div class="desc" style="margin-top:8px">Adesso il movimento è ${movOff() ? "spento" : "attivo"}.</div></div>
+    <div class="scheda"><div class="nome">Vetro iOS 27</div><div class="desc">Barra in basso, pulsanti, filtri e finestre in stile Liquid Glass di iOS 27: vetro smerigliato più leggibile, bordo luminoso e riflesso. Su telefoni lenti conviene spegnerlo.</div>
+    <div class="chips avvolgi" role="group" aria-label="Vetro iOS 27">${[["on", "Acceso"], ["off", "Spento"]].map(([v, l]) => `<button class="chip" data-az="vetro" data-v="${v}" aria-pressed="${(S.vetro !== false) === (v === "on")}">${l}</button>`).join("")}</div></div>
     <p class="mute piccolo">Spese salvate su questo telefono: ${vivi(S.spese).length}.</p>`;
 }
 
@@ -713,7 +719,7 @@ function pulisciRiserv(j) {
 function ripristina(j) {
   const d = j && j.dati; if (!d || typeof d !== "object") return false;
   try { localStorage.setItem("lit4-prima-ripristino", JSON.stringify(S)); } catch { /* ok */ }
-  const n = vuoto(); n.riserv = S.riserv; n.mov = ["auto", "on", "off"].includes(d.mov) ? d.mov : (d.neve === false ? "off" : "auto");
+  const n = vuoto(); n.riserv = S.riserv; n.vetro = d.vetro !== false; n.mov = ["auto", "on", "off"].includes(d.mov) ? d.mov : (d.neve === false ? "off" : "auto");
   n.me = gruppo().includes(S.me) ? S.me : ""; n.valP = nomeOk(d.valP) ? d.valP : "";
   for (const k of ["fatti", "note", "val", "profili", "finestre", "contoVisto", "valigiaOk"]) n[k] = d[k];
   n.salutoGiorno = typeof d.salutoGiorno === "string" ? d.salutoGiorno : "";
@@ -842,6 +848,7 @@ const azioni = {
   },
   me(v) { S.me = v; salva(); msg = ""; render(); },
   reset() { if (confirm("Cancellare spese, note e dati riservati da questo telefono?")) { S = vuoto(); salva(); msg = ""; render(); } },
+  vetro(v) { S.vetro = v === "on"; salva(); applicaVetro(); render(); },
   mov(v) { if (!["auto", "on", "off"].includes(v)) return; S.mov = v; salva(); applicaMov(); render(); },
   valP(v) { S.valP = v; salva(); render(); },
   profilo(v) { if (S.valP) { if (v) S.profili[S.valP] = v; else delete S.profili[S.valP]; salva(); render(); } },

@@ -217,7 +217,7 @@ article.scheda.st3::after{border-color:var(--su-ambra)}
 #cielo .c-stelle{position:absolute;inset:0;width:100%;height:100%;fill:#FFF4DE}
 #cielo .c-stelle g{animation:c-brilla 4.2s ease-in-out infinite}.c-stelle .s2{animation-duration:5.6s;animation-delay:-1.8s}.c-stelle .s3{animation-duration:3.4s;animation-delay:-2.6s;fill:#F2B24B}
 @keyframes c-brilla{0%,100%{opacity:.25}50%{opacity:.95}}
-#cielo .c-luna{position:absolute;top:6vh;left:calc(78vw - 38px);width:76px;height:76px;border-radius:50%;background:radial-gradient(circle at 38% 36%,#fffaf0,#FFF4DE 55%,#e9d8b4);box-shadow:0 0 38px 10px rgba(255,244,222,.32),0 0 120px 40px rgba(242,178,75,.16)}
+#cielo .c-luna{position:absolute;top:3vh;left:calc(79vw - 44px);width:88px;height:88px;filter:drop-shadow(0 0 16px rgba(255,244,222,.38)) drop-shadow(0 0 54px rgba(242,178,75,.2))}
 #cielo{--h:min(29vh,300px)}
 #cielo .c-sky{position:absolute;left:50%;bottom:0;height:var(--h);width:calc(var(--h)*3.3333);margin-left:calc(var(--h)*-1.7533);overflow:visible}
 #cielo .c-orologio{animation:c-orologio 6s ease-in-out infinite;filter:drop-shadow(0 0 5px rgba(242,178,75,.9))}
@@ -225,17 +225,47 @@ article.scheda.st3::after{border-color:var(--su-ambra)}
 #cielo .c-eye{transform-box:fill-box;transform-origin:center;animation:c-giro 160s linear infinite}
 #cielo .c-capsule{transform-box:fill-box;transform-origin:center;animation:c-giro 160s linear infinite}
 @keyframes c-giro{to{transform:rotate(360deg)}}
-#cielo .c-harry{position:absolute;top:0;left:0;width:116px;margin:-30px 0 0 -58px;transform:translate(78vw,calc(6vh + 38px)) rotate(-6deg)}
+#cielo .c-harry{position:absolute;top:0;left:0;width:116px;margin:-30px 0 0 -58px;transform:translate(78vw,calc(3vh + 44px)) rotate(-6deg)}
 #cielo .c-harry svg{display:block;width:100%;overflow:visible}
 @media (prefers-reduced-motion:no-preference){
  html:not(.calmo) #cielo .c-harry{animation:c-volo 38s linear infinite;transform:translate(-30vw,30vh)}
  html:not(.calmo) #cielo .c-bob{animation:c-bob 2.6s ease-in-out infinite}
  html:not(.calmo) #cielo .c-scia circle{animation:c-scia 1.2s ease-out infinite}
 }
-@keyframes c-volo{0%{transform:translate(-30vw,34vh) rotate(-4deg)}16%{transform:translate(22vw,24vh) rotate(-8deg)}32%{transform:translate(78vw,calc(6vh + 38px)) rotate(-5deg)}48%{transform:translate(130vw,-2vh) rotate(-10deg)}100%{transform:translate(130vw,-2vh) rotate(-10deg)}}
+@keyframes c-volo{0%{transform:translate(-30vw,34vh) rotate(-4deg)}16%{transform:translate(22vw,24vh) rotate(-8deg)}32%{transform:translate(78vw,calc(3vh + 44px)) rotate(-5deg)}48%{transform:translate(130vw,-2vh) rotate(-10deg)}100%{transform:translate(130vw,-2vh) rotate(-10deg)}}
 @keyframes c-bob{0%,100%{transform:translateY(-4px) rotate(-2deg)}50%{transform:translateY(5px) rotate(2deg)}}
 @keyframes c-scia{0%{opacity:.9}100%{opacity:0}}
 #cielo .c-scia circle:nth-child(2){animation-delay:.2s}#cielo .c-scia circle:nth-child(3){animation-delay:.4s}#cielo .c-scia circle:nth-child(4){animation-delay:.6s}#cielo .c-scia circle:nth-child(5){animation-delay:.8s}
-html:not([data-tab="oggi"]) #cielo .c-sky,html:not([data-tab="oggi"]) #cielo .c-harry,html:not([data-tab="oggi"]) #cielo .c-luna,html:not([data-tab="oggi"]) #cielo .c-alba{opacity:.55}
+html:not([data-tab="oggi"]) #cielo .c-sky,html:not([data-tab="oggi"]) #cielo .c-alba{opacity:.55}
+html:not([data-tab="oggi"]) #cielo .c-harry,html:not([data-tab="oggi"]) #cielo .c-luna{opacity:.22}
 .calmo #cielo .c-stelle g,.calmo #cielo .c-eye,.calmo #cielo .c-capsule,.calmo #cielo .c-orologio{animation:none}
 @media (prefers-reduced-motion:reduce){html:not(.forza) #cielo *{animation:none!important}}
+
+/* slitta di Babbo Natale con tre renne: attraversa il cielo da destra a sinistra */
+#cielo .c-slitta{position:absolute;top:0;left:0;width:170px;margin:-22px 0 0 -170px;transform:translate(26vw,calc(24vh + 10px)) rotate(2deg)}
+#cielo .c-slitta svg{display:block;width:100%;overflow:visible}
+@media (prefers-reduced-motion:no-preference){
+ html:not(.calmo) #cielo .c-slitta{animation:c-slitta 64s linear infinite;animation-delay:8s;transform:translate(135vw,40vh)}
+ html:not(.calmo) #cielo .c-bob2{animation:c-bob 3.1s ease-in-out infinite}
+ html:not(.calmo) #cielo .c-scia2 circle{animation:c-scia 1.4s ease-out infinite}
+}
+@keyframes c-slitta{0%{transform:translate(135vw,38vh) rotate(3deg)}14%{transform:translate(98vw,28vh) rotate(1deg)}28%{transform:translate(52vw,20vh) rotate(-2deg)}42%{transform:translate(14vw,24vh) rotate(1deg)}58%{transform:translate(-24vw,32vh) rotate(3deg)}100%{transform:translate(-24vw,32vh) rotate(3deg)}}
+#cielo .c-scia2 circle:nth-child(2){animation-delay:.25s}#cielo .c-scia2 circle:nth-child(3){animation-delay:.5s}#cielo .c-scia2 circle:nth-child(4){animation-delay:.75s}#cielo .c-scia2 circle:nth-child(5){animation-delay:1s}
+html:not([data-tab="oggi"]) #cielo .c-slitta{opacity:.22}
+
+/* Vetro iOS 27: Liquid Glass rifinito. Più opaco di iOS 26 per leggere bene, bordo luminoso, riflesso in alto. Spento dall'interruttore in Altro, Sistema. */
+html.vetro{--vt-bg:linear-gradient(165deg,rgba(255,255,255,.17),rgba(255,255,255,.05) 46%,rgba(255,255,255,.09));--vt-base:rgba(16,36,58,.66);--vt-bordo:rgba(255,255,255,.24);--vt-luce:inset 0 1px 0 rgba(255,255,255,.4),inset 0 -1px 0 rgba(255,255,255,.07),inset 1px 0 0 rgba(255,255,255,.1)}
+html.vetro .dock{background:var(--vt-bg),var(--vt-base);-webkit-backdrop-filter:blur(26px) saturate(185%);backdrop-filter:blur(26px) saturate(185%);border:1px solid var(--vt-bordo);box-shadow:var(--vt-luce),0 16px 44px rgba(0,0,0,.5);border-radius:36px;padding:6px}
+html.vetro .dock .ind::after{background:linear-gradient(180deg,rgba(255,244,222,.26),rgba(242,178,75,.3));border:1px solid rgba(255,225,160,.6);border-radius:30px;box-shadow:inset 0 1px 0 rgba(255,255,255,.55),inset 0 -6px 12px rgba(242,178,75,.18),0 2px 10px rgba(0,0,0,.3);-webkit-backdrop-filter:blur(6px) saturate(160%);backdrop-filter:blur(6px) saturate(160%)}
+html.vetro .dock button[aria-current="page"]{color:var(--ink);font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.45)}
+html.vetro .dock button{color:#c4d1df}
+html.vetro .chip,html.vetro .giorno,html.vetro .btn:not(.pri):not(.rosso),html.vetro a.map{background:var(--vt-bg),rgba(16,36,58,.5);-webkit-backdrop-filter:blur(14px) saturate(170%);backdrop-filter:blur(14px) saturate(170%);border:1px solid var(--vt-bordo);box-shadow:var(--vt-luce);color:var(--ink)}
+html.vetro .chip[aria-pressed="true"],html.vetro .giorno[aria-pressed="true"]{background:linear-gradient(180deg,rgba(255,244,222,.3),rgba(242,178,75,.34)),rgba(16,36,58,.5);border-color:rgba(255,225,160,.7);color:var(--ink);font-weight:700;text-shadow:0 1px 2px rgba(0,0,0,.5);box-shadow:var(--vt-luce),0 0 14px rgba(242,178,75,.22)}
+html.vetro .btn.pri{background:linear-gradient(180deg,#ffd27f,#F2B24B 60%,#e09a2c);border:1px solid rgba(255,235,190,.8);box-shadow:inset 0 1px 0 rgba(255,255,255,.65),inset 0 -2px 6px rgba(150,90,0,.25),0 6px 16px rgba(0,0,0,.35);color:#1a1204}
+html.vetro details.scheda.nuova,html.vetro .vicini>summary,html.vetro .nota-t>summary{background:transparent}
+html.vetro details.scheda.nuova{background:var(--vt-bg),rgba(16,36,58,.58);-webkit-backdrop-filter:blur(18px) saturate(170%);backdrop-filter:blur(18px) saturate(170%);border:1px solid var(--vt-bordo);box-shadow:var(--vt-luce)}
+html.vetro .popup{background:var(--vt-bg),rgba(14,30,50,.78);-webkit-backdrop-filter:blur(30px) saturate(190%);backdrop-filter:blur(30px) saturate(190%);border:1px solid var(--vt-bordo);box-shadow:var(--vt-luce),0 24px 70px rgba(0,0,0,.6)}
+html.vetro .popup::backdrop{background:rgba(5,10,18,.5);-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+html.vetro .toast{background:var(--vt-bg),rgba(16,36,58,.78);-webkit-backdrop-filter:blur(22px) saturate(180%);backdrop-filter:blur(22px) saturate(180%);border:1px solid var(--vt-bordo);box-shadow:var(--vt-luce),0 14px 36px rgba(0,0,0,.5);border-radius:26px}
+@media (prefers-reduced-transparency:reduce){html.vetro .dock,html.vetro .chip,html.vetro .giorno,html.vetro .btn,html.vetro a.map,html.vetro details.scheda.nuova,html.vetro .popup,html.vetro .toast{-webkit-backdrop-filter:none;backdrop-filter:none;background:var(--carta2)}}
+@supports not ((backdrop-filter:blur(1px)) or (-webkit-backdrop-filter:blur(1px))){html.vetro .dock,html.vetro .popup,html.vetro .toast{background:var(--carta2)}}
