@@ -664,6 +664,7 @@ function render(foco) {
   }
   const bersaglio = foco || sel;
   if (bersaglio) { try { const el = $(bersaglio); if (el) el.focus({ preventScroll: true }); } catch { /* selettore non valido */ } }
+  document.documentElement.dataset.tab = tab;
   document.title = (tab === "oggi" ? "" : DOCK.find(d => d[0] === tab)[1] + " - ") + "Londra in tasca";
   document.querySelectorAll("#dock button").forEach(b => { if (b.dataset.t === tab) b.setAttribute("aria-current", "page"); else b.removeAttribute("aria-current"); });
   aggiornaBadge();

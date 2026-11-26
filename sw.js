@@ -1,5 +1,5 @@
 /* Londra in tasca (versione principale): copia salvata per l'uso senza rete. Cambiare VERSIONE a ogni pubblicazione. */
-const VERSIONE = "lit-33";
+const VERSIONE = "lit-34";
 const FILE = ["./", "index.html", "style.css", "notte.css", "dati.js", "app.js", "sondaggio.js", "push.js", "vendor/supabase.js", "fonts/Fraunces.ttf", "fonts/Fraunces-Italic.ttf", "fonts/DMSans.ttf", "installa.js", "manifest.webmanifest", "mappa/mappa.js", "mappa/stile.json", "mappa/metro.json", "mappa/luoghi.json", "vendor/maplibre-gl-csp.js", "vendor/maplibre-gl-csp-worker.js", "vendor/maplibre-gl.css", "vendor/pmtiles.js",
   ...["Regular", "Medium", "Italic"].flatMap(f => ["0-255", "256-511"].map(r => `mappa/fonts/Noto%20Sans%20${f}/${r}.pbf`)),
   "icone/icona-192.png", "icone/icona-512.png", "icone/icona-maskable-512.png"];
